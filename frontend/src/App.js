@@ -8,14 +8,12 @@ import { AppProvider, type Navigation } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import TextField from '@mui/material/TextField';
-import InputAdornment from '@mui/material/InputAdornment';
-import { DemoContainer } from '@mui/x-date-pickers/internals/demo';
-import { LocalizationProvider } from '@mui/x-date-pickers-pro/LocalizationProvider';
-import { AdapterDayjs } from '@mui/x-date-pickers-pro/AdapterDayjs';
-import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import '@fontsource/roboto/700.css';
+import { useState } from 'react';
+
+
 
 /*
     设置网页菜单结构
@@ -66,39 +64,29 @@ const demoTheme = createTheme({
   },
 });
 
-//股票代码输入框
-function InputStockCode(){
-    return(
-    <div>
-        <TextField
-          label="输入股票代码"
-          id="outlined-start-adornment"
-          sx={{ m: 1, width: '25ch' }}
-          slotProps={{
-            input: {
-              startAdornment: <InputAdornment position="start">代码</InputAdornment>,
-            },
-          }}
-        />
-    </div>
-    );
-}
-//选择股票数据时间范围
-function DateSelect(){
-    return(
-    <div>
-           <LocalizationProvider dateAdapter={AdapterDayjs}>
-             <DemoContainer components={['DateRangePicker']}>
-               <DateRangePicker localeText={{ start: '起始日期', end: '结束日期' }} />
-             </DemoContainer>
-           </LocalizationProvider>
-    </div>
-    );
-}
-
-
 //股票数据页面
 function DemoPageContent({ pathname }: { pathname: string }) {
+    // 定义状态来存储股票代码、起始时间和结束时间
+    const [stockCode, setStockCode] = useState('');
+    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
+  const handleGetStockData = async () => {
+  try {
+      // 构建请求的 URL 或请求体，这里假设是 GET 请求
+      const url = 'http://localhost:5000/getDayData?code='+stockCode+'&start='+startDate+'&end='+endDate;
+
+      // 发送请求
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // 处理响应数据，例如打印到控制台
+      console.log(data);
+    } catch (error) {
+      // 处理错误
+      console.error('请求失败:', error);
+    }
+  };
   return (
     <Box
       sx={{
@@ -111,12 +99,37 @@ function DemoPageContent({ pathname }: { pathname: string }) {
     >
            <h1>获取股票数据</h1>
            <h2>输入股票代码</h2>
-           <InputStockCode />
+                <div>
+                 <TextField
+                    label="股票代码"
+                    value={stockCode}
+                    onChange={(e) => setStockCode(e.target.value)}
+                    sx={{ mb: 2 }} // 添加一些间距
+                  />
+                </div>
            <h2>选择股票数据时间范围</h2>
-           <DateSelect />
-        <Button variant="contained" endIcon={<SendIcon />} sx={{ mt: 4}}>
-            获取股票数据
-        </Button>
+           <TextField
+             label="起始日期"
+             type="date"
+             value={startDate}
+             onChange={(e) => setStartDate(e.target.value)}
+             sx={{ mb: 2 }}
+           />
+           <TextField
+             type="date"
+             label="结束日期"
+             value={endDate}
+             onChange={(e) => setEndDate(e.target.value)}
+             sx={{ mb: 2 }}
+           />
+           <Button
+             variant="contained"
+             endIcon={<SendIcon />}
+             onClick={handleGetStockData}
+             sx={{ mt: 4 }}
+           >
+             获取股票数据
+           </Button>
     </Box>
   );
 }

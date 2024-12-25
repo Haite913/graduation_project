@@ -1,22 +1,52 @@
 import csv
 from io import BytesIO
+from flask import request, jsonify
 
 import pandas
 import requests
 from flask import Flask, jsonify
-
 from datetime import datetime, timezone, timedelta
 import pytz
+from flask import request, make_response
+
+
 
 # 用当前脚本名称实例化Flask对象，方便flask从该脚本文件中获取需要的内容
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # 明确设置JSON编码时不将非ASCII字符转义，等同于json.dumps的ensure_ascii=False效果
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'  # 设置返回JSON数据的MIME类型及编码为UTF-8
+@app.after_request
+def add_cors_headers(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
+
+def convert_date_to_timestamp(date_str, date_format='%Y-%m-%d'):
+    # 将日期字符串解析为 datetime 对象
+    date_obj = datetime.strptime(date_str, date_format)
+
+    # 将 datetime 对象转换为 UTC 时间（如果需要）
+    # date_obj = date_obj.replace(tzinfo=timezone.utc)
+
+    # 将 datetime 对象转换为毫秒级时间戳
+    timestamp = int(date_obj.timestamp() * 1000)
+
+    return timestamp
+
+
 
 @app.route('/getDayData', methods=['GET'])
 def getDayData():
     # 获取用户提供的股票代码
-    stock_code = 'VNCE'
+    # 从请求中获取查询参数
+    stock_code = request.args.get('code', default='VNCE', type=str)
+    start_date = request.args.get('start', default=None, type=str)
+    start_date = convert_date_to_timestamp(start_date);
+
+    print(stock_code)
+    print(start_date)
+
     if not stock_code:
         return jsonify({"error": "缺少股票代码参数"}), 400
 
@@ -26,7 +56,7 @@ def getDayData():
     }
 
     # 构建API请求URL
-    url = f'https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={stock_code}&begin=1734578276737&period=day&type=before&count=-284&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance&md5__1632=n4%2BxnD0DcD9DRADgGiD%2Fje0%3DGOQIYxDtOQOoae4D'
+    url = f'https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={stock_code}&begin={start_date}&period=day&type=before&count=-284&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance&md5__1632=n4%2BxnD0DcD9DRADgGiD%2Fje0%3DGOQIYxDtOQOoae4D'
 
     try:
         response = requests.get(url=url, headers=headers)
@@ -52,11 +82,8 @@ def getDayData():
                 for item in kline_data:
                     data_dict = dict(zip(columns, item))
 
-                    # 将时间戳转换为可读格式
-                    timestamp = datetime.utcfromtimestamp(data_dict['timestamp'] / 1000).isoformat()
-
                     row = {
-                        '时间': timestamp,
+                        '时间': data_dict['timestamp'],
                         '成交量': data_dict['volume'],
                         '开盘价': data_dict['open'],
                         '最高价': data_dict['high'],
@@ -85,4 +112,4 @@ def getDayData():
         return jsonify({"error": str(e)}), 500
 
 # 启动一个本地开发服务器，激活该网页
-app.run()
+app.run(host='localhost', port=5000, debug=True)
