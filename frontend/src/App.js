@@ -15,8 +15,13 @@ import { AdapterDayjs } from '@mui/x-date-pickers-pro/AdapterDayjs';
 import { DateRangePicker } from '@mui/x-date-pickers-pro/DateRangePicker';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
-import { useState } from 'react';
+import '@fontsource/roboto/700.css';
 
+/*
+    设置网页菜单结构
+    kind:'header'设置菜单头;kind:'divider'设置分割线
+    segment设置路由段
+*/
 const NAVIGATION: Navigation = [
   {
     kind: 'header',
@@ -41,11 +46,15 @@ const NAVIGATION: Navigation = [
   },
 ];
 
+//定义一个主题对象
 const demoTheme = createTheme({
+  //用于选择颜色
   cssVariables: {
     colorSchemeSelector: 'data-toolpad-color-scheme',
   },
+  //表示两个颜色都可用
   colorSchemes: { light: true, dark: true },
+  //自适应屏幕大小
   breakpoints: {
     values: {
       xs: 0,
@@ -57,7 +66,62 @@ const demoTheme = createTheme({
   },
 });
 
-// 在文件顶部定义新页面组件
+//股票代码输入框
+function InputStockCode(){
+    return(
+    <div>
+        <TextField
+          label="输入股票代码"
+          id="outlined-start-adornment"
+          sx={{ m: 1, width: '25ch' }}
+          slotProps={{
+            input: {
+              startAdornment: <InputAdornment position="start">代码</InputAdornment>,
+            },
+          }}
+        />
+    </div>
+    );
+}
+//选择股票数据时间范围
+function DateSelect(){
+    return(
+    <div>
+           <LocalizationProvider dateAdapter={AdapterDayjs}>
+             <DemoContainer components={['DateRangePicker']}>
+               <DateRangePicker localeText={{ start: '起始日期', end: '结束日期' }} />
+             </DemoContainer>
+           </LocalizationProvider>
+    </div>
+    );
+}
+
+
+//股票数据页面
+function DemoPageContent({ pathname }: { pathname: string }) {
+  return (
+    <Box
+      sx={{
+        py: 4,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        textAlign: 'center',
+      }}
+    >
+           <h1>获取股票数据</h1>
+           <h2>输入股票代码</h2>
+           <InputStockCode />
+           <h2>选择股票数据时间范围</h2>
+           <DateSelect />
+        <Button variant="contained" endIcon={<SendIcon />} sx={{ mt: 4}}>
+            获取股票数据
+        </Button>
+    </Box>
+  );
+}
+
+//股票分析页面
 function StockAnalysisPage() {
   return (
     <Box
@@ -70,84 +134,22 @@ function StockAnalysisPage() {
       }}
     >
       <Typography variant="h1">股票分析页面</Typography>
-      <Typography variant="body1">这里是股票分析的内容。</Typography>
-    </Box>
-  );
-}
-
-function DemoPageContent({ pathname }: { pathname: string }) {
-  const [folderPath, setFolderPath] = useState('');
-
-  const handleFolderSelect = (event) => {
-    const files = event.target.files;
-    if (files.length > 0) {
-      // 获取第一个文件的路径（在某些浏览器中可能无法获取完整路径）
-      const folder = files[0].webkitRelativePath.split('/')[0];
-      setFolderPath(folder);
-    }
-  };
-  return (
-    <Box
-      sx={{
-        py: 4,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-      }}
-    >
-        <TextField
-          label="输入股票代码"
-          id="outlined-start-adornment"
-          sx={{ m: 1, width: '25ch' }}
-          slotProps={{
-            input: {
-              startAdornment: <InputAdornment position="start">代码</InputAdornment>,
-            },
-          }}
-        />
-           <LocalizationProvider dateAdapter={AdapterDayjs}>
-             <DemoContainer components={['DateRangePicker']}>
-               <DateRangePicker localeText={{ start: '起始日期', end: '结束日期' }} />
-             </DemoContainer>
-           </LocalizationProvider>
-        <div>
-      <input
-        type="file"
-        webkitdirectory
-        directory
-        id="folderPicker"
-        style={{ display: 'none' }} // 隐藏 input
-        onChange={handleFolderSelect}
-      />
-      <Button variant="contained" component="label" htmlFor="folderPicker">
-        选择文件夹
-      </Button>
-      <TextField
-        label="选择数据保存地址"
-        value={folderPath}
-        InputProps={{
-          readOnly: true,
-        }}
-        style={{ marginTop: '10px', width: '300px' }}
-      />
-      </div>
-        <Button variant="contained" endIcon={<SendIcon />}>
-            获取股票数据
-        </Button>
-
     </Box>
   );
 }
 
 interface DemoProps {
+  //设置一个可选属性
   window?: () => Window;
 }
 
 export default function DashboardLayoutBasic(props: DemoProps) {
+  //从 props 对象中解构出 window 属性
   const { window } = props;
+  //设置路由的根路径是 /dashboard。
   const router = useDemoRouter('/dashboard');
   const demoWindow = window !== undefined ? window() : undefined;
+  //从 router 对象中解构出当前的路由路径 pathname。
   const { pathname } = router; // 获取当前的路由路径
 
   // 根据路由路径决定渲染哪个页面内容

@@ -1,5 +1,6 @@
 # graduation_project
 毕业设计——量化投资中的择时策略研究
 
-- 安装django
-    - 输入 pip install django
+前端:REACT+MUI
+
+问题1:通过选择文件夹路径，选择股票数据存放地址，浏览器安全限制，不能获取文件夹完整路径
