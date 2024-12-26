@@ -15,13 +15,14 @@ from flask import request, make_response
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # 明确设置JSON编码时不将非ASCII字符转义，等同于json.dumps的ensure_ascii=False效果
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'  # 设置返回JSON数据的MIME类型及编码为UTF-8
+# 为请求设置请求头，防止跨域请求错误
 @app.after_request
 def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
-
+#时间格式转换，将%Y-%m-%d转换成时间戳格式
 def convert_date_to_timestamp(date_str, date_format='%Y-%m-%d'):
     # 将日期字符串解析为 datetime 对象
     date_obj = datetime.strptime(date_str, date_format)
@@ -34,18 +35,14 @@ def convert_date_to_timestamp(date_str, date_format='%Y-%m-%d'):
 
     return timestamp
 
-
-
 @app.route('/getDayData', methods=['GET'])
 def getDayData():
     # 获取用户提供的股票代码
     # 从请求中获取查询参数
     stock_code = request.args.get('code', default='VNCE', type=str)
     start_date = request.args.get('start', default=None, type=str)
-    start_date = convert_date_to_timestamp(start_date);
-
-    print(stock_code)
-    print(start_date)
+    end_date = request.args.get('end', default=None, type=str)
+    start_date_s = convert_date_to_timestamp(start_date);
 
     if not stock_code:
         return jsonify({"error": "缺少股票代码参数"}), 400
@@ -56,21 +53,19 @@ def getDayData():
     }
 
     # 构建API请求URL
-    url = f'https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={stock_code}&begin={start_date}&period=day&type=before&count=-284&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance&md5__1632=n4%2BxnD0DcD9DRADgGiD%2Fje0%3DGOQIYxDtOQOoae4D'
+    url = f'https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={stock_code}&begin={start_date_s}&period=day&type=before&count=1000000&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance&md5__1632=n4%2BxnD0DcD9DRADgGiD%2Fje0%3DGOQIYxDtOQOoae4D'
 
     try:
         response = requests.get(url=url, headers=headers)
         response.raise_for_status()  # 检查请求是否成功
         json_data = response.json()
 
-        print(json_data)
-
         # 解析数据
         if 'data' in json_data and 'item' in json_data['data']:
             kline_data = json_data['data']['item']
             columns = json_data['data']['column']
             content_list = []
-            csv_filename = f'{stock_code}_daily_data.csv'
+            csv_filename = f'{stock_code}.csv'
 
             with open(csv_filename, mode='w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=[
@@ -81,29 +76,34 @@ def getDayData():
 
                 for item in kline_data:
                     data_dict = dict(zip(columns, item))
-
-                    row = {
-                        '时间': data_dict['timestamp'],
-                        '成交量': data_dict['volume'],
-                        '开盘价': data_dict['open'],
-                        '最高价': data_dict['high'],
-                        '最低价': data_dict['low'],
-                        '收盘价': data_dict['close'],
-                        '涨跌额': data_dict['chg'],
-                        '涨跌幅': data_dict['percent'],
-                        '换手率': data_dict['turnoverrate'],
-                        '成交额': data_dict['amount'],
-                        '市盈率': data_dict['pe'],
-                        '市净率': data_dict['pb'],
-                        '市销率': data_dict['ps'],
-                        '市现率': data_dict['pcf'],
-                        '市值': data_dict['market_capital'],
-                        '资金流向': data_dict['balance']
-                    }
-
-                    writer.writerow(row)
-                    content_list.append(row)
-
+                    current_timestamp = data_dict['timestamp']
+                    # 将毫秒级时间戳转换为秒
+                    timestamp_s = current_timestamp / 1000.0
+                    # 将时间戳转换为 datetime 对象
+                    date_obj = datetime.utcfromtimestamp(timestamp_s)
+                    # 格式化 datetime 对象为 '年-月-日' 格式
+                    formatted_date = date_obj.strftime('%Y-%m-%d')
+                    if(formatted_date < end_date):
+                        row = {
+                            '时间': formatted_date,
+                            '成交量': data_dict['volume'],
+                            '开盘价': data_dict['open'],
+                            '最高价': data_dict['high'],
+                            '最低价': data_dict['low'],
+                            '收盘价': data_dict['close'],
+                            '涨跌额': data_dict['chg'],
+                            '涨跌幅': data_dict['percent'],
+                            '换手率': data_dict['turnoverrate'],
+                            '成交额': data_dict['amount'],
+                            '市盈率': data_dict['pe'],
+                            '市净率': data_dict['pb'],
+                            '市销率': data_dict['ps'],
+                            '市现率': data_dict['pcf'],
+                            '市值': data_dict['market_capital'],
+                            '资金流向': data_dict['balance']
+                            }
+                        writer.writerow(row)
+                        content_list.append(row)
             return jsonify(content_list)
         else:
             return jsonify({"error": "未找到相关数据"}), 404
