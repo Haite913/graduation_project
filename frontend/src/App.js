@@ -1,6 +1,5 @@
 import * as React from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import { createTheme } from '@mui/material/styles';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import LayersIcon from '@mui/icons-material/Layers';
@@ -11,8 +10,12 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import SendIcon from '@mui/icons-material/Send';
 import '@fontsource/roboto/700.css';
-import { useState } from 'react';
-
+import { useState,useEffect  } from 'react';
+import Radio from '@mui/material/Radio';
+import RadioGroup from '@mui/material/RadioGroup';
+import FormControl from '@mui/material/FormControl';
+import FormLabel from '@mui/material/FormLabel';
+import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
 
 
 /*
@@ -136,18 +139,62 @@ function DemoPageContent({ pathname }: { pathname: string }) {
 
 //股票分析页面
 function StockAnalysisPage() {
+  const [files, setFiles] = useState([]); // 假设您已经定义了这个状态来存储文件名
+
+  const handleGetCsvFiles = async () => {
+  try {
+      // 构建请求的 URL 或请求体，这里假设是 GET 请求
+      const url = 'http://localhost:5000/getCsvFile';
+
+      // 发送请求
+      const response = await fetch(url);
+      const data = await response.json();
+
+      // 处理响应数据，例如打印到控制台
+      console.log(data);
+      setFiles(data.csv_files);
+    } catch (error) {
+      // 处理错误
+      console.error('请求失败:', error);
+    }
+  };
+  useEffect(() => {
+    handleGetCsvFiles();
+  }, []); // 空依赖数组表示仅在组件挂载时执行
+
   return (
-    <Box
-      sx={{
-        py: 4,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-      }}
-    >
-      <Typography variant="h1">股票分析页面</Typography>
-    </Box>
+    //第一支股票模块
+    <box style={{ padding:"10px 20px"}}>
+    <FormControl>
+      <h1>选择第1支股票</h1>
+            <FormLabel id="demo-row-radio-buttons-group-label">股票</FormLabel>
+      <RadioGroup
+        aria-labelledby="demo-radio-buttons-group-label"
+        defaultValue={files[0]} // 假设默认选择第一个文件
+        name="radio-buttons-group"
+      >
+        {files.map((item) => (
+          <FormControlLabel
+            key={item}
+            value={item}
+            control={<Radio />}
+            label={item}
+          />
+        ))}
+      </RadioGroup>
+      <FormLabel id="demo-row-radio-buttons-group-label">指标</FormLabel>
+      <RadioGroup
+        row
+        aria-labelledby="demo-row-radio-buttons-group-label"
+        name="row-radio-buttons-group"
+      >
+        <FormControlLabel value="MACD" control={<Radio />} label="MACD" />
+        <FormControlLabel value="KDJ" control={<Radio />} label="KDJ" />
+        <FormControlLabel value="RSI" control={<Radio />} label="RSI" />
+        <FormControlLabel value="CCI" control={<Radio />} label="CCI" />
+      </RadioGroup>
+    </FormControl>
+    </box>
   );
 }
 

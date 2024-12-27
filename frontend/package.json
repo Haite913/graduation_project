@@ -11,6 +11,7 @@
     "@mui/x-date-pickers-pro": "^7.23.3",
     "@toolpad/core": "^0.11.0",
     "cra-template": "1.2.0",
+    "path-browserify": "^1.0.1",
     "react": "^18.0.0",
     "react-datepicker": "^7.5.0",
     "react-dom": "^18.0.0",

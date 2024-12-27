@@ -8,13 +8,14 @@ from flask import Flask, jsonify
 from datetime import datetime, timezone, timedelta
 import pytz
 from flask import request, make_response
-
-
+from MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
+import os
 
 # 用当前脚本名称实例化Flask对象，方便flask从该脚本文件中获取需要的内容
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # 明确设置JSON编码时不将非ASCII字符转义，等同于json.dumps的ensure_ascii=False效果
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'  # 设置返回JSON数据的MIME类型及编码为UTF-8
+
 # 为请求设置请求头，防止跨域请求错误
 @app.after_request
 def add_cors_headers(response):
@@ -34,6 +35,19 @@ def convert_date_to_timestamp(date_str, date_format='%Y-%m-%d'):
     timestamp = int(date_obj.timestamp() * 1000)
 
     return timestamp
+@app.route('/getCsvFile', methods=['GET'])
+def getCsvFile():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+
+    # 列出当前目录中的所有文件和文件夹
+    files_and_directories = os.listdir(current_directory)
+
+    # 筛选出所有 .csv 文件
+    csv_files = [file for file in files_and_directories if file.endswith('.csv')]
+
+    # 返回 JSON 响应
+    return {'csv_files': csv_files}
 
 @app.route('/getDayData', methods=['GET'])
 def getDayData():
@@ -110,6 +124,29 @@ def getDayData():
 
     except requests.RequestException as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/getDataMACD', methods=['GET'])
+def getDataMACD():
+    # 从 CSV 文件中读取数据
+    file_path = 'SH600865.csv'
+    df = pandas.read_csv(file_path)
+
+    # 确保收盘价是数值类型
+    df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+
+    # 计算 MACD
+    close_series = df['收盘价'].dropna()  # 确保删除任何 NaN 值
+    dif, dea, macd = MACD(close_series)
+
+    # 创建响应数据
+    response_data = {
+        'DIF': dif.tolist(),
+        'DEA': dea.tolist(),
+        'MACD': macd.tolist()
+    }
+
+    # 返回 JSON 响应
+    return jsonify(response_data)
 
 # 启动一个本地开发服务器，激活该网页
 app.run(host='localhost', port=5000, debug=True)
