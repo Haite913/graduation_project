@@ -138,12 +138,20 @@ def getDataMACD():
     close_series = df['收盘价'].dropna()  # 确保删除任何 NaN 值
     dif, dea, macd = MACD(close_series)
 
-    # 创建响应数据
+    # 将 NaN 值替换为 None
+    dif = [0 if pandas.isna(x) or x != x else x for x in dif]  # x != x 是检查 NaN 的一种方式
+    dea = [0 if pandas.isna(x) or x != x else x for x in dea]
+    macd = [0 if pandas.isna(x) or x != x else x for x in macd]
+
+     # 创建响应数据
     response_data = {
-        'DIF': dif.tolist(),
-        'DEA': dea.tolist(),
-        'MACD': macd.tolist()
+        'DIF': dif,
+        'DEA': dea,
+        'MACD': macd,
+        'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
     }
+
+    print(response_data);
 
     # 返回 JSON 响应
     return jsonify(response_data)
