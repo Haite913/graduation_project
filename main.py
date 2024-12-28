@@ -53,7 +53,7 @@ def getCsvFile():
 def getDayData():
     # 获取用户提供的股票代码
     # 从请求中获取查询参数
-    stock_code = request.args.get('code', default='VNCE', type=str)
+    stock_code = request.args.get('code', default=None, type=str)
     start_date = request.args.get('start', default=None, type=str)
     end_date = request.args.get('end', default=None, type=str)
     start_date_s = convert_date_to_timestamp(start_date);
@@ -128,7 +128,8 @@ def getDayData():
 @app.route('/getDataMACD', methods=['GET'])
 def getDataMACD():
     # 从 CSV 文件中读取数据
-    file_path = 'SH600865.csv'
+    selectedFile = request.args.get('selectedFile', default=None, type=str)
+    file_path = selectedFile
     df = pandas.read_csv(file_path)
 
     # 确保收盘价是数值类型

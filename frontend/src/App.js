@@ -150,6 +150,14 @@ function StockAnalysisPage() {
     TIME: [null], // 或者 [null]
     });
   const [open, setOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(files[0]);
+  const [selectedValue, setSelectedValue] = useState('');
+
+  // 处理 RadioGroup 变化的函数
+  const handleRadioChange = (event) => {
+    // 更新状态变量为选中的值
+    setSelectedValue(event.target.value);
+  };
 
   const handleGetCsvFiles = async () => {
   try {
@@ -169,34 +177,40 @@ function StockAnalysisPage() {
     }
   };
 
-const handleGetMACD = async () => {
-  try {
-    const url = 'http://localhost:5000/getDataMACD';
-    const response = await fetch(url);
-    const rawData = await response.text(); // 获取响应文本而不是直接解析为 JSON
+    const handleFileChange = (event) => {
+        const newSelectedFile = event.target.value; // 获取新选中的文件
+        setSelectedFile(newSelectedFile); // 更新选中的文件
+    };
 
-    setOpen(true);
+    const handleGetMACD = async () => {
+      try {
+        const url = 'http://localhost:5000/getData'+selectedValue+'?selectedFile='+selectedFile;
+        const response = await fetch(url);
+        const rawData = await response.text(); // 获取响应文本而不是直接解析为 JSON
 
-    // 尝试解析 JSON，处理 NaN 值
-    let data;
-    try {
-      data = JSON.parse(rawData);
-    } catch (error) {
-      // 如果解析失败，尝试替换 NaN 为 null 后再次解析
-      const fixedData = rawData.replace(/NaN/g, 'null');
-      data = JSON.parse(fixedData);
-    }
+        setOpen(true);
 
-    console.log(data);
-    setMACDS(data);
-  } catch (error) {
-    console.error('请求失败:', error);
-  }
-};
+        // 尝试解析 JSON，处理 NaN 值
+        let data;
+        try {
+          data = JSON.parse(rawData);
+        } catch (error) {
+          // 如果解析失败，尝试替换 NaN 为 null 后再次解析
+          const fixedData = rawData.replace(/NaN/g, 'null');
+          data = JSON.parse(fixedData);
+        }
+
+        console.log(data);
+        setMACDS(data);
+      } catch (error) {
+        console.error('请求失败:', error);
+      }
+    };
 
   useEffect(() => {
     handleGetCsvFiles();
   }, []); // 空依赖数组表示仅在组件挂载时执行
+
 
   return (
   <Grid container spacing={2}>
@@ -207,8 +221,9 @@ const handleGetMACD = async () => {
             <FormLabel id="demo-row-radio-buttons-group-label">股票</FormLabel>
       <RadioGroup
         aria-labelledby="demo-radio-buttons-group-label"
-        defaultValue={files[0]} // 假设默认选择第一个文件
+        defaultValue={selectedFile} // 假设默认选择第一个文件
         name="radio-buttons-group"
+        onClick={handleFileChange}
       >
         {files.map((item) => (
           <FormControlLabel
@@ -224,6 +239,8 @@ const handleGetMACD = async () => {
         row
         aria-labelledby="demo-row-radio-buttons-group-label"
         name="row-radio-buttons-group"
+        onChange={handleRadioChange} // 设置 onChange 事件处理函数
+        value={selectedValue}  // 设置 RadioGroup 的 value 为状态变量
       >
         <FormControlLabel value="MACD" control={<Radio />} label="MACD" />
         <FormControlLabel value="KDJ" control={<Radio />} label="KDJ" />
@@ -240,8 +257,7 @@ const handleGetMACD = async () => {
     获取指标图像
     </Button>
     <LineChart
-    width={500}
-    height={300}
+    height={400}
     open={open}
     series={[
          { data: MACDS.DEA, label: 'DEA',color:'orange' },
