@@ -1,44 +1,43 @@
+# 调入元素
 import csv
-from io import BytesIO
-from flask import request, jsonify
-
 import pandas
 import requests
-from flask import Flask, jsonify
-from datetime import datetime, timezone, timedelta
-import pytz
-from flask import request, make_response
-from MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
 import os
+from flask import Flask
+from datetime import datetime
+from flask import request, jsonify
+from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
 
 # 用当前脚本名称实例化Flask对象，方便flask从该脚本文件中获取需要的内容
 app = Flask(__name__)
 app.config['JSON_AS_ASCII'] = False  # 明确设置JSON编码时不将非ASCII字符转义，等同于json.dumps的ensure_ascii=False效果
 app.config['JSONIFY_MIMETYPE'] = 'application/json; charset=utf-8'  # 设置返回JSON数据的MIME类型及编码为UTF-8
 
-# 为请求设置请求头，防止跨域请求错误
+# 为发来的请求设置请求头，防止跨域请求错误
 @app.after_request
 def add_cors_headers(response):
     response.headers.add('Access-Control-Allow-Origin', '*')
     response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
     response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
     return response
-#时间格式转换，将%Y-%m-%d转换成时间戳格式
+
+#时间格式转换，将%Y-%m-%d转换成毫秒级时间戳格式
 def convert_date_to_timestamp(date_str, date_format='%Y-%m-%d'):
     # 将日期字符串解析为 datetime 对象
     date_obj = datetime.strptime(date_str, date_format)
-
-    # 将 datetime 对象转换为 UTC 时间（如果需要）
-    # date_obj = date_obj.replace(tzinfo=timezone.utc)
 
     # 将 datetime 对象转换为毫秒级时间戳
     timestamp = int(date_obj.timestamp() * 1000)
 
     return timestamp
+#获取本地的以.csv为后缀的文件列表
+#参数：无
+#返回:.csv文件列表
 @app.route('/getCsvFile', methods=['GET'])
 def getCsvFile():
     # 获取当前工作目录
     current_directory = os.getcwd()
+    current_directory = current_directory+"/stock_data"
 
     # 列出当前目录中的所有文件和文件夹
     files_and_directories = os.listdir(current_directory)
@@ -49,6 +48,9 @@ def getCsvFile():
     # 返回 JSON 响应
     return {'csv_files': csv_files}
 
+#根据股票代码，起始日期，结束日期从雪球网获取股票数据
+#参数：code(股票代码),start(起始时间),end(结束时间)
+#返回: 股票数据
 @app.route('/getDayData', methods=['GET'])
 def getDayData():
     # 获取用户提供的股票代码
@@ -125,11 +127,17 @@ def getDayData():
     except requests.RequestException as e:
         return jsonify({"error": str(e)}), 500
 
+#根据股票代码，起始日期，结束日期从雪球网获取股票数据
+#参数：selectedFile(选择文件)
+#返回: MACD三个指标
 @app.route('/getDataMACD', methods=['GET'])
 def getDataMACD():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+    current_directory = current_directory+"/stock_data/"
     # 从 CSV 文件中读取数据
     selectedFile = request.args.get('selectedFile', default=None, type=str)
-    file_path = selectedFile
+    file_path = current_directory+selectedFile
     df = pandas.read_csv(file_path)
 
     # 确保收盘价是数值类型
