@@ -7,6 +7,8 @@ from flask import Flask
 from datetime import datetime
 from flask import request, jsonify
 from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
+import re
+import tushare as ts
 
 # 用当前脚本名称实例化Flask对象，方便flask从该脚本文件中获取需要的内容
 app = Flask(__name__)
@@ -30,6 +32,7 @@ def convert_date_to_timestamp(date_str, date_format='%Y-%m-%d'):
     timestamp = int(date_obj.timestamp() * 1000)
 
     return timestamp
+
 #获取本地的以.csv为后缀的文件列表
 #参数：无
 #返回:.csv文件列表
@@ -60,6 +63,8 @@ def getDayData():
     end_date = request.args.get('end', default=None, type=str)
     start_date_s = convert_date_to_timestamp(start_date);
 
+    stock_code = re.sub(r"[::]", "", stock_code)
+
     if not stock_code:
         return jsonify({"error": "缺少股票代码参数"}), 400
 
@@ -83,7 +88,9 @@ def getDayData():
             content_list = []
             csv_filename = f'{stock_code}.csv'
 
-            with open(csv_filename, mode='w', newline='', encoding='utf-8') as csvfile:
+            file_path = 'stock_data/'+csv_filename
+
+            with open(file_path, mode='w', newline='', encoding='utf-8') as csvfile:
                 writer = csv.DictWriter(csvfile, fieldnames=[
                     '时间', '成交量', '开盘价', '最高价', '最低价', '收盘价', '涨跌额', '涨跌幅', '换手率', '成交额',
                     '市盈率', '市净率', '市销率', '市现率', '市值', '资金流向'
