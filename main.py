@@ -4,7 +4,7 @@ import pandas
 import requests
 import os
 from flask import Flask
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import request, jsonify
 from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
 import re
@@ -61,6 +61,9 @@ def getDayData():
     stock_code = request.args.get('code', default=None, type=str)
     start_date = request.args.get('start', default=None, type=str)
     end_date = request.args.get('end', default=None, type=str)
+    start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    start_date = start_date - timedelta(days=1)
+    start_date = start_date.strftime('%Y-%m-%d')
     start_date_s = convert_date_to_timestamp(start_date);
 
     stock_code = re.sub(r"[::]", "", stock_code)
@@ -149,13 +152,15 @@ def getDataMACD():
 
     # 确保收盘价是数值类型
     df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+    print(df['收盘价'])
 
     # 计算 MACD
-    close_series = df['收盘价'].dropna()  # 确保删除任何 NaN 值
+    close_series = df['收盘价']  # 确保删除任何 NaN 值
     dif, dea, macd = MACD(close_series)
 
     # 将 NaN 值替换为 None
     dif = [0 if pandas.isna(x) or x != x else x for x in dif]  # x != x 是检查 NaN 的一种方式
+    print(dif)
     dea = [0 if pandas.isna(x) or x != x else x for x in dea]
     macd = [0 if pandas.isna(x) or x != x else x for x in macd]
 

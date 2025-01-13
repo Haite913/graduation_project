@@ -100,7 +100,7 @@ function StockAnalysisPage() {
         const response = await fetch(url);
         const rawData = await response.text(); // 获取响应文本而不是直接解析为 JSON
 
-        setOpen1(true);
+        setOpen2(true);
 
         // 尝试解析 JSON，处理 NaN 值
         let data;
@@ -125,8 +125,8 @@ function StockAnalysisPage() {
 
 
   return (
-  <Grid container spacing={2}>
-  <Grid size={50} style={{ width:"50%",padding:"10px 20px"}}>
+  <Grid container spacing={1}>
+  <Grid size={100} style={{ width:"100%",padding:"10px 20px"}}>
     <box style={{ padding:"10px 20px",display:"flex",flexDirection:"column"}}>
     <FormControl>
       <h1>选择第1支股票</h1>
@@ -172,65 +172,11 @@ function StockAnalysisPage() {
     height={400}
     open={open1}
     series={[
-         { data: MACDS1.DEA, label: 'DEA',color:'orange' },
-         { data: MACDS1.DIF, label: 'DIF' },
+         { data: MACDS1.DEA, label: 'DEA',color:'blue' },
+         { data: MACDS1.DIF, label: 'DIF',color:'orange' },
          { data: MACDS1.MACD, label: 'MACD'},
     ]}
     xAxis={[{ scaleType: 'point', data: MACDS1.TIME }]}
-    />
-    </box>
-  </Grid>
- <Grid size={6} style={{ width:"50%",padding:"10px 20px"}}>
-      <box style={{ padding:"10px 20px",display:"flex",flexDirection:"column"}}>
-    <FormControl>
-      <h1>选择第2支股票</h1>
-            <FormLabel id="demo-row-radio-buttons-group-label">股票</FormLabel>
-      <RadioGroup
-        aria-labelledby="demo-radio-buttons-group-label"
-        defaultValue={selectedFile2} // 假设默认选择第一个文件
-        name="radio-buttons-group"
-        onClick={handleFileChange2}
-      >
-        {files.map((item) => (
-          <FormControlLabel
-            key={item}
-            value={item}
-            control={<Radio />}
-            label={item}
-          />
-        ))}
-      </RadioGroup>
-      <FormLabel id="demo-row-radio-buttons-group-label">指标</FormLabel>
-      <RadioGroup
-        row
-        aria-labelledby="demo-row-radio-buttons-group-label"
-        name="row-radio-buttons-group"
-        onChange={handleRadioChange2} // 设置 onChange 事件处理函数
-        value={selectedValue2}  // 设置 RadioGroup 的 value 为状态变量
-      >
-        <FormControlLabel value="MACD" control={<Radio />} label="MACD" />
-        <FormControlLabel value="KDJ" control={<Radio />} label="KDJ" />
-        <FormControlLabel value="RSI" control={<Radio />} label="RSI" />
-        <FormControlLabel value="CCI" control={<Radio />} label="CCI" />
-      </RadioGroup>
-    </FormControl>
-    <Button
-             variant="contained"
-             endIcon={<SendIcon />}
-             onClick={handleGetMACD2}
-             sx={{ mt: 4 }}
-           >
-    获取指标图像
-    </Button>
-    <LineChart
-    height={400}
-    open={open1}
-    series={[
-         { data: MACDS2.DEA, label: 'DEA',color:'orange' },
-         { data: MACDS2.DIF, label: 'DIF' },
-         { data: MACDS2.MACD, label: 'MACD'},
-    ]}
-    xAxis={[{ scaleType: 'point', data: MACDS2.TIME }]}
     />
     </box>
   </Grid>
