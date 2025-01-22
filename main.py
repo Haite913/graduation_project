@@ -7,6 +7,7 @@ from flask import Flask
 from datetime import datetime, timedelta
 from flask import request, jsonify
 from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
+from backend.KDJ import KDJ  # 从 MACD.py 文件导入 MACD 函数
 import re
 import tushare as ts
 
@@ -152,7 +153,6 @@ def getDataMACD():
 
     # 确保收盘价是数值类型
     df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
-    print(df['收盘价'])
 
     # 计算 MACD
     close_series = df['收盘价']  # 确保删除任何 NaN 值
@@ -160,7 +160,6 @@ def getDataMACD():
 
     # 将 NaN 值替换为 None
     dif = [0 if pandas.isna(x) or x != x else x for x in dif]  # x != x 是检查 NaN 的一种方式
-    print(dif)
     dea = [0 if pandas.isna(x) or x != x else x for x in dea]
     macd = [0 if pandas.isna(x) or x != x else x for x in macd]
 
@@ -172,7 +171,39 @@ def getDataMACD():
         'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
     }
 
-    print(response_data);
+    # 返回 JSON 响应
+    return jsonify(response_data)
+
+@app.route('/getDataKDJ', methods=['GET'])
+def getDataKDJ():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+    current_directory = current_directory + "/stock_data/"
+    # 从 CSV 文件中读取数据
+    selectedFile = request.args.get('selectedFile', default=None, type=str)
+    file_path = current_directory + selectedFile
+    df = pandas.read_csv(file_path)
+
+    # 确保收盘价、最高价和最低价是数值类型
+    df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+    df['最高价'] = pandas.to_numeric(df['最高价'], errors='coerce')
+    df['最低价'] = pandas.to_numeric(df['最低价'], errors='coerce')
+
+    # 计算 KDJ
+    k, d, j = KDJ(df)
+
+    # 将 NaN 值替换为 None
+    k = [None if pandas.isna(x) else x for x in k]
+    d = [None if pandas.isna(x) else x for x in d]
+    j = [None if pandas.isna(x) else x for x in j]
+
+    # 创建响应数据
+    response_data = {
+        'K': k,
+        'D': d,
+        'J': j,
+        'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
+    }
 
     # 返回 JSON 响应
     return jsonify(response_data)
