@@ -28,6 +28,14 @@ function StockAnalysisPage() {
     J: [null], // 或者 [null]
     TIME: [null], // 或者 [null]
   });
+  const [RSIS1, setRSIS1] = useState({
+    RSI: [null],  // 或者 [null]
+    TIME: [null], // 或者 [null]
+  });
+  const [CCIS1, setCCIS1] = useState({
+    CCI: [null],  // 或者 [null]
+    TIME: [null], // 或者 [null]
+  });
   const [open1, setOpen1] = useState(false);
   const [selectedFile1, setSelectedFile1] = useState(files[0]);
   const [selectedValue1, setSelectedValue1] = useState('');
@@ -85,6 +93,10 @@ function StockAnalysisPage() {
             setMACDS1(data);
         }else if(selectedValue1==='KDJ'){
             setKDJS1(data);
+        }else if(selectedValue1==='RSI'){
+            setRSIS1(data);
+        }else if(selectedValue1==='CCI'){
+            setCCIS1(data);
         }
       } catch (error) {
         console.error('请求失败:', error);
@@ -146,8 +158,8 @@ function StockAnalysisPage() {
     height={400}
     open={open1}
     series={[
-         { data: MACDS1.DEA, label: 'DEA',color:'blue' },
-         { data: MACDS1.DIF, label: 'DIF',color:'orange' },
+         { data: MACDS1.DEA, label: 'DEA',color:'blue', showMark: false },
+         { data: MACDS1.DIF, label: 'DIF',color:'orange', showMark: false },
     ]}
     xAxis={[{ scaleType: 'point', data: MACDS1.TIME }]}
     />
@@ -155,7 +167,7 @@ function StockAnalysisPage() {
     height={400}
     open={open1}
     series={[
-         { data: MACDS1.MACD, label: 'MACD'},
+         { data: MACDS1.MACD, label: 'MACD',color:"green"},
     ]}
     xAxis={[{ scaleType: 'band', data: MACDS1.TIME }]}
     />
@@ -172,6 +184,7 @@ function StockAnalysisPage() {
       <BarPlot /> {/* Will only display series with type: 'bar' */}
       <LinePlot /> {/* Will only display series with type: 'line' */}
     </ChartContainer>
+    }
     </box>
     )
     }
@@ -181,11 +194,37 @@ function StockAnalysisPage() {
     height={400}
     open={open1}
     series={[
-         { data: KDJS1.K, label: 'K',color:'#f6ae42' },
-         { data: KDJS1.D, label: 'D',color:'#4788c4' },
-         { data: KDJS1.J, label: 'J',color:'#d25cb3' },
+         { data: KDJS1.K, label: 'K',color:'#f6ae42', showMark: false },
+         { data: KDJS1.D, label: 'D',color:'#4788c4', showMark: false },
+         { data: KDJS1.J, label: 'J',color:'#d25cb3', showMark: false },
     ]}
         xAxis={[{ scaleType: 'point', data: KDJS1.TIME }]}
+    />
+       </box>
+    )
+    }
+    {selectedValue1 === 'RSI' && (
+       <box>
+    <LineChart
+    height={400}
+    open={open1}
+    series={[
+         { data: RSIS1.RSI, label: 'RSI',color:'#f6ae42', showMark: false },
+    ]}
+        xAxis={[{ scaleType: 'point', data: RSIS1.TIME }]}
+    />
+       </box>
+    )
+    }
+    {selectedValue1 === 'CCI' && (
+       <box>
+    <LineChart
+    height={400}
+    open={open1}
+    series={[
+         { data: CCIS1.CCI, label: 'CCI',color:'blue', showMark: false },
+    ]}
+        xAxis={[{ scaleType: 'point', data: CCIS1.TIME }]}
     />
        </box>
     )

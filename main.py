@@ -8,6 +8,8 @@ from datetime import datetime, timedelta
 from flask import request, jsonify
 from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
 from backend.KDJ import KDJ  # 从 MACD.py 文件导入 MACD 函数
+from backend.RSI import RSI  # 从 MACD.py 文件导入 MACD 函数
+from backend.CCI import CCI  # 从 MACD.py 文件导入 MACD 函数
 import re
 import tushare as ts
 
@@ -202,6 +204,64 @@ def getDataKDJ():
         'K': k,
         'D': d,
         'J': j,
+        'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
+    }
+
+    # 返回 JSON 响应
+    return jsonify(response_data)
+# RSI = （近期涨幅平均值 /  近期跌幅平均值）× 100
+@app.route('/getDataRSI', methods=['GET'])
+def getDataRSI():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+    current_directory = current_directory + "/stock_data/"
+    # 从 CSV 文件中读取数据
+    selectedFile = request.args.get('selectedFile', default=None, type=str)
+    file_path = current_directory + selectedFile
+    df = pandas.read_csv(file_path)
+
+    # 确保收盘价是数值类型
+    df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+
+    # 计算 RSI
+    rsi = RSI(df, period=14)  # 默认周期为14
+
+    # 将 NaN 值替换为 None
+    rsi = [None if pandas.isna(x) else x for x in rsi]
+
+    # 创建响应数据
+    response_data = {
+        'RSI': rsi,
+        'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
+    }
+
+    # 返回 JSON 响应
+    return jsonify(response_data)
+
+@app.route('/getDataCCI', methods=['GET'])
+def getDataCCI():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+    current_directory = current_directory + "/stock_data/"
+    # 从 CSV 文件中读取数据
+    selectedFile = request.args.get('selectedFile', default=None, type=str)
+    file_path = current_directory + selectedFile
+    df = pandas.read_csv(file_path)
+
+    # 确保价格列是数值类型
+    df['最高价'] = pandas.to_numeric(df['最高价'], errors='coerce')
+    df['最低价'] = pandas.to_numeric(df['最低价'], errors='coerce')
+    df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+
+    # 计算 CCI
+    cci = CCI(df, period=20)  # 默认周期为 20
+
+    # 将 NaN 值替换为 None
+    cci = [None if pandas.isna(x) else x for x in cci]
+
+    # 创建响应数据
+    response_data = {
+        'CCI': cci,
         'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
     }
 
