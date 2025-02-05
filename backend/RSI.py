@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-#MACD计算公式
+#RSI计算公式
 def RSI(df, period=14):
     """
     计算 RSI 指标

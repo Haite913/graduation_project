@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@mui/x-data-grid": "^7.24.1",
     "antd": "^5.23.2",
     "dayjs": "^1.11.13",
     "moment": "^2.30.1",

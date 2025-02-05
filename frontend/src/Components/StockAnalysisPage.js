@@ -9,9 +9,9 @@ import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
 import Grid from '@mui/material/Grid';
-import { LineChart,LinePlot } from '@mui/x-charts/LineChart';
-import { BarChart,BarPlot } from '@mui/x-charts/BarChart';
-import { ChartContainer } from '@mui/x-charts/ChartContainer';
+import { LineChart } from '@mui/x-charts/LineChart';
+import { BarChart } from '@mui/x-charts/BarChart';
+import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
 
 //股票分析页面
 function StockAnalysisPage() {
@@ -36,6 +36,9 @@ function StockAnalysisPage() {
     CCI: [null],  // 或者 [null]
     TIME: [null], // 或者 [null]
   });
+
+  const [buyPoints, setBuyPoints] = useState([]); // 买入点时间
+  const [sellPoints, setSellPoints] = useState([]); // 卖出点时间
   const [open1, setOpen1] = useState(false);
   const [selectedFile1, setSelectedFile1] = useState(files[0]);
   const [selectedValue1, setSelectedValue1] = useState('');
@@ -66,38 +69,110 @@ function StockAnalysisPage() {
 
     const handleFileChange1 = (event) => {
         const newSelectedFile1 = event.target.value; // 获取新选中的文件
+        setMACDS1({
+         DIF: [null],  // 或者 [null]
+         DEA: [null],  // 或者 [null]
+         MACD: [null], // 或者 [null]
+         TIME: [null], // 或者 [null]
+         });
+        setRSIS1({
+          K: [null],  // 或者 [null]
+          D: [null],  // 或者 [null]
+          J: [null], // 或者 [null]
+          TIME: [null], // 或者 [null]
+        });
+        setKDJS1({
+          RSI: [null],  // 或者 [null]
+          TIME: [null], // 或者 [null]
+        });
+        setCCIS1({
+          CCI: [null],  // 或者 [null]
+          TIME: [null], // 或者 [null]
+        });
         setSelectedFile1(newSelectedFile1); // 更新选中的文件
     };
 
 
     const handleGetDATA = async () => {
       try {
-        const url = 'http://localhost:5000/getData'+selectedValue1+'?selectedFile='+selectedFile1;
-        const response = await fetch(url);
-        const rawData = await response.text(); // 获取响应文本而不是直接解析为 JSON
+        // 获取 MACD 数据
+        let macdUrl = `http://localhost:5000/getDataMACD?selectedFile=${selectedFile1}`;
+        let macdResponse = await fetch(macdUrl);
+        let macdRawData = await macdResponse.text();
+        let macdData = JSON.parse(macdRawData.replace(/NaN/g, 'null'));
+        setMACDS1(macdData);
+
+        // 获取 KDJ 数据
+        let kdjUrl = `http://localhost:5000/getDataKDJ?selectedFile=${selectedFile1}`;
+        let kdjResponse = await fetch(kdjUrl);
+        let kdjRawData = await kdjResponse.text();
+        let kdjData = JSON.parse(kdjRawData.replace(/NaN/g, 'null'));
+        setKDJS1(kdjData);
+
+        // 获取 RSI 数据
+        let rsiUrl = `http://localhost:5000/getDataRSI?selectedFile=${selectedFile1}`;
+        let rsiResponse = await fetch(rsiUrl);
+        let rsiRawData = await rsiResponse.text();
+        let rsiData = JSON.parse(rsiRawData.replace(/NaN/g, 'null'));
+        setRSIS1(rsiData);
+
+
+        // 获取 CCI 数据
+        let cciUrl = `http://localhost:5000/getDataCCI?selectedFile=${selectedFile1}`;
+        let cciResponse = await fetch(cciUrl);
+        let cciRawData = await cciResponse.text();
+        let cciData = JSON.parse(cciRawData.replace(/NaN/g, 'null'));
+        setCCIS1(cciData);
+
+         // 计算买入和卖出点
+        const buyPoints1 = [];
+        const sellPoints1 = [];
+        for (let i = 1; i < macdData.DIF.length; i++) {
+          const prevDIF = macdData.DIF[i - 1];
+          const currDIF = macdData.DIF[i];
+          const prevDEA = macdData.DEA[i - 1];
+          const currDEA = macdData.DEA[i];
+
+          // 获取当前时刻的KDJ、RSI、CCI值
+          const currK = kdjData.K[i];
+          const currD = kdjData.D[i];
+          const currRSI = rsiData.RSI[i];
+          const currCCI = cciData.CCI[i];
+
+          // 买入条件：DIF 和 DEA 均大于 0，且 DIF 向上突破 DEA
+          // 同时满足 KDJ 的 D 小于 20%，RSI 小于 20，CCI 小于 -100
+          if (
+            prevDIF < prevDEA &&
+            currDIF > currDEA &&
+            currDIF > 0 &&
+            currDEA > 0 &&
+            currD < 20 &&
+            currRSI < 20 &&
+            currCCI < -100
+          ) {
+            buyPoints1.push({ time: macdData.TIME[i], type: '买入' });
+          }
+          // 卖出条件：DIF 和 DEA 均小于 0，且 DIF 向下突破 DEA
+          // 同时满足 KDJ 的 D 大于 80%，RSI 大于 80，CCI 大于 100
+          else if (
+            prevDIF > prevDEA &&
+            currDIF < currDEA &&
+            currDIF < 0 &&
+            currDEA < 0 &&
+            currD > 80 &&
+            currRSI > 80 &&
+            currCCI > 100
+          ) {
+            sellPoints1.push({ time: macdData.TIME[i], type: '卖出' });
+          }
+        }
+
+        setBuyPoints(buyPoints1);
+        setSellPoints(sellPoints1);
+        console.log(buyPoints);
+        console.log(sellPoints);
 
         setOpen1(true);
-
-        // 尝试解析 JSON，处理 NaN 值
-        let data;
-        try {
-          data = JSON.parse(rawData);
-        } catch (error) {
-          // 如果解析失败，尝试替换 NaN 为 null 后再次解析
-          const fixedData = rawData.replace(/NaN/g, 'null');
-          data = JSON.parse(fixedData);
-        }
-
-        console.log(data);
-        if(selectedValue1==='MACD'){
-            setMACDS1(data);
-        }else if(selectedValue1==='KDJ'){
-            setKDJS1(data);
-        }else if(selectedValue1==='RSI'){
-            setRSIS1(data);
-        }else if(selectedValue1==='CCI'){
-            setCCIS1(data);
-        }
       } catch (error) {
         console.error('请求失败:', error);
       }
@@ -171,20 +246,6 @@ function StockAnalysisPage() {
     ]}
     xAxis={[{ scaleType: 'band', data: MACDS1.TIME }]}
     />
-    <ChartContainer
-      height={400}
-      open={open1}
-      series={[
-        { data: MACDS1.DEA, type: 'line', label: 'DEA'}, // This series is for the bar chart
-        { data: MACDS1.DIF, type: 'line', label: 'DIF'}, // This series is for the line chart
-        { data: MACDS1.MACD, type: 'bar', label: 'MACD'} // This series is for the line chart
-      ]}
-      xAxis={[{ scaleType: 'band', data: MACDS1.TIME }]}
-    >
-      <BarPlot /> {/* Will only display series with type: 'bar' */}
-      <LinePlot /> {/* Will only display series with type: 'line' */}
-    </ChartContainer>
-    }
     </box>
     )
     }
@@ -229,6 +290,33 @@ function StockAnalysisPage() {
        </box>
     )
     }
+    {/* 添加表格显示买入卖出点 */}
+    <TableContainer component={Paper} sx={{ mt: 4 }}>
+      <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
+        <TableHead>
+          <TableRow>
+            <TableCell>时间</TableCell>
+            <TableCell align="right">操作类型</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {/* 合并 buyPoints 和 sellPoints，并按时间排序 */}
+          {buyPoints.concat(sellPoints)
+            .sort((a, b) => new Date(a.time) - new Date(b.time)) // 按时间排序
+            .map((point, index) => (
+            <TableRow
+              key={index}
+              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+            >
+              <TableCell component="th" scope="row">
+                {point.time}
+              </TableCell>
+              <TableCell align="right">{point.type}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
     </box>
   </Grid>
   </Grid>
