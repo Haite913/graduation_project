@@ -124,47 +124,48 @@ function StockAnalysisPage() {
         let cciData = JSON.parse(cciRawData.replace(/NaN/g, 'null'));
         setCCIS1(cciData);
 
-         // 计算买入和卖出点
+        // 计算买入和卖出点
         const buyPoints1 = [];
         const sellPoints1 = [];
         for (let i = 1; i < macdData.DIF.length; i++) {
-          const prevDIF = macdData.DIF[i - 1];
-          const currDIF = macdData.DIF[i];
-          const prevDEA = macdData.DEA[i - 1];
-          const currDEA = macdData.DEA[i];
+            const prevDIF = macdData.DIF[i - 1];
+            const currDIF = macdData.DIF[i];
+            const prevDEA = macdData.DEA[i - 1];
+            const currDEA = macdData.DEA[i];
 
-          // 获取当前时刻的KDJ、RSI、CCI值
-          const currK = kdjData.K[i];
-          const currD = kdjData.D[i];
-          const currRSI = rsiData.RSI[i];
-          const currCCI = cciData.CCI[i];
+            // 获取KDJ前值和当前值
+            const prevK = kdjData.K[i - 1];
+            const currK = kdjData.K[i];
+            const prevD = kdjData.D[i - 1];
+            const currD = kdjData.D[i];
 
-          // 买入条件：DIF 和 DEA 均大于 0，且 DIF 向上突破 DEA
-          // 同时满足 KDJ 的 D 小于 20%，RSI 小于 20，CCI 小于 -100
-          if (
-            prevDIF < prevDEA &&
-            currDIF > currDEA &&
-            currDIF > 0 &&
-            currDEA > 0 &&
-            currD < 20 &&
-            currRSI < 20 &&
-            currCCI < -100
-          ) {
-            buyPoints1.push({ time: macdData.TIME[i], type: '买入' });
-          }
-          // 卖出条件：DIF 和 DEA 均小于 0，且 DIF 向下突破 DEA
-          // 同时满足 KDJ 的 D 大于 80%，RSI 大于 80，CCI 大于 100
-          else if (
-            prevDIF > prevDEA &&
-            currDIF < currDEA &&
-            currDIF < 0 &&
-            currDEA < 0 &&
-            currD > 80 &&
-            currRSI > 80 &&
-            currCCI > 100
-          ) {
-            sellPoints1.push({ time: macdData.TIME[i], type: '卖出' });
-          }
+            // 获取当前时刻的RSI、CCI值
+            const currRSI = rsiData.RSI[i];
+            const currCCI = cciData.CCI[i];
+
+            // 买入条件（三个必须同时满足）
+            if (
+                // MACD金叉：DIF上穿DEA
+                prevDIF < prevDEA && currDIF > currDEA &&
+                // KDJ金叉：K线上穿D线
+                prevK < prevD && currK >= currD &&
+                // CCI或RSI满足其一
+                (currCCI > 100 || currRSI < 30)
+            ) {
+                buyPoints1.push({ time: macdData.TIME[i], type: '买入' });
+            }
+
+            // 卖出条件（三个必须同时满足）
+            else if (
+                // MACD死叉：DIF下穿DEA
+                prevDIF > prevDEA && currDIF < currDEA &&
+                // KDJ死叉：K线下穿D线
+                prevK > prevD && currK <= currD &&
+                // CCI或RSI满足其一
+                (currCCI < -100 || currRSI > 70)
+            ) {
+                sellPoints1.push({ time: macdData.TIME[i], type: '卖出' });
+            }
         }
 
         setBuyPoints(buyPoints1);
@@ -237,6 +238,7 @@ function StockAnalysisPage() {
          { data: MACDS1.DIF, label: 'DIF',color:'orange', showMark: false },
     ]}
     xAxis={[{ scaleType: 'point', data: MACDS1.TIME }]}
+
     />
     <BarChart
     height={400}

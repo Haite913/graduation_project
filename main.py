@@ -10,6 +10,7 @@ from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
 from backend.KDJ import KDJ  # 从 MACD.py 文件导入 MACD 函数
 from backend.RSI import RSI  # 从 MACD.py 文件导入 MACD 函数
 from backend.CCI import CCI  # 从 MACD.py 文件导入 MACD 函数
+from datetime import datetime, timezone, timedelta
 import re
 import tushare as ts
 
@@ -75,12 +76,12 @@ def getDayData():
         return jsonify({"error": "缺少股票代码参数"}), 400
 
     headers = {
-        'Cookie': 'cookiesu=241734160142476; Hm_lvt_1db88642e346389874251b5a1eded6e3=1734160144; HMACCOUNT=F9A8A95BFDD29F91; device_id=f209dddad001c71ee26c2dc5056fad28; s=c517hylvp6; remember=1; xq_a_token=dc4fdfadb4b723d23d9ea7b07aced7a167d0a59d; xqat=dc4fdfadb4b723d23d9ea7b07aced7a167d0a59d; xq_id_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOjEzMzA2Mzc5NTgsImlzcyI6InVjIiwiZXhwIjoxNzM2NzUyMjQxLCJjdG0iOjE3MzQxNjAyNDE4MzcsImNpZCI6ImQ5ZDBuNEFadXAifQ.WIlg9FHvMYs3o8IO0Y6DaMcGHZxWfPufNAyZCpyH6Ysk1QUGuKRDG49wpSfJ_dYq7aC7BFPRyEL5IchiUGz0Pk0V__qWBM3mAM94vIurKJKS3eitsKm8pDDDHcd6EeEurVcPpaXQ-_ffbBmd2EnfYv8ON50Y3vehBS4sk2nGL5ouPmvIXnRPTwc1QXIDLpPOCfXH5pDflj1IHLLQxBO502W22wlJ9gegpXvzscbdAKtph0K5OREV7ADPxtQPJ7LwkzPBi8GAOJPxANQtLnzFnOCsaNNQ-6imB80d29s9OYz937tD6BoI58fJ7PItiwvU8167esTUs0xiTmQ34Q1w_Q; xq_r_token=6a057c19f15db7195f78a3844b52ed7a45812d50; xq_is_login=1; u=1330637958; Hm_lpvt_1db88642e346389874251b5a1eded6e3=1734184567; ssxmod_itna=YqAx2DBGi=DQqY5e0Lx0pI1Q=GkDuCD7uu44mYpru45DsK6DSxGKidDqxBnm=xbw3p760pwNCF77GdoQwcGGdKiCZEwLGKIDAoDhx7QDox0=DnxAQDj2oYGGnxBYDQxAYDGDDPyDGwX8nDGpMGwtlB4=ulb6MDi3nYqDRiqDgfeD1YnNDXwLxUqDAAeGyKeGfYqGgBq=0DY=DQuan+ltDjfRW11WRDYPH+knrxBQtdqQdnLXViLyo/AxL43AxAAYq/YxYYAhNehDtnUwfk7MoiODFKVw=9RDyvAxU4beteD=; ssxmod_itna2=YqAx2DBGi=DQqY5e0Lx0pI1Q=GkDuCD7uu44mYpru4D1D6cD0Hd07Ps=+hYR=DL7BTvsq8DEYhCMYnui0hPNKCvXsY9PC03A18Db9TjsnR6TNGY/ln0FReFDxRv0HHHIjxBDFqG7=eD=',
+        'Cookie': 'cookiesu=661734449097288; device_id=d5e0c443eea36ebfa394fe87f641040e; s=as1cbvpcls; xq_is_login=1; u=6858200485; xq_a_token=ebd287477080ef7f38a2f48557cd9f7383674046; xqat=ebd287477080ef7f38a2f48557cd9f7383674046; xq_id_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOjY4NTgyMDA0ODUsImlzcyI6InVjIiwiZXhwIjoxNzQxNTY5MTU2LCJjdG0iOjE3Mzg5NzcxNTY5NjIsImNpZCI6ImQ5ZDBuNEFadXAifQ.EpIJojXQks6EhwvRn0CZUxth_JjT61XQDJrYj7QGJtT9JOw5h9Tcm6cSfVPWSd13chKq0i4vVPrjROIDT5FCl1YUWXYp8ikR-015ZMEIGklyo474qi2IhcbRXfqThiXqaxzXDsXGgRznE31NP0vU9dtCGodG3zLuR1ry-X7vlDmbwffqllIm4e34NfGqRPAvcIRBBaooZ_K6dt_1MNyy7-HBNTbLEQerLLUmDkVfKekCMXawVTF0oD_OofLksl92bSNH-RDSTaInomc4nIKOqEH2WF1jkYZEgTmgqL-sOvIvKax5U_6sP8UoNopbf0hOKVx4Sg1ihPdt5eFT0JrmWg; xq_r_token=60450ee73183b954f5c20c698672b87ea25cc209; is_overseas=0; ssxmod_itna=iqfOBKYKiKDIQxl8xCErH2nOlDgGB6mDQuGFqhKDsofDSxGKidDqxBWnlDDt=T=FiYPhaqoErWwF=l68xDkKjRqnpuKx1cje+tAo4GLDmKDyYpoxnYD4SKGwD0eG+DD4DW7qAoDexGpS9wXSDi3D4qDRDAQDzLjMDG3ZDYpSzqDgQeDB+OQDKqGg0LxD0LhTsD3bBEb/KMbPZeDSYhNYfqDMDPGXY7yKfTTzZ6xDgLFYICpy7mrDtqD9WjtDbfQNEDNxvC+EFBmsFGvY3fmeBxmKYrfYYgDbKRPBcAGqeReAbd+sB5DAl7CLox4D; ssxmod_itna2=iqfOBKYKiKDIQxl8xCErH2nOlDgGB6mDQuGFqxikfkqzDl6D7qo03m=DB7MKqnR+z9Yi4Fik=0=MB6edhZWgIP5vOTHwxevEMinm9ArDjbbap+u7S4GVpA2449lnY9WUF61DHwwkvweI/2oCfbohFAqO4wGfeS6ZbG2YogLvfCGRjOKR0kx1tnI6KiTp9SQ7tPvXFpewQqvosbYxa=QYYqRei1R1X3vksqanjg6DZTEylANybY0O=IhIaKtcAegw0WYBYMv6QTuXqdcsIL9f+eZc0EOhRzdIo2yzf=gzBO/kHBIG=MEGxiM6XzxIemXo=P+1LeCpPDeUcNVeoLEN4cw4+m3t2kYXnZmlOmYxjMYK+0UvWGdhLq4wkQp+jECgbE=31jo4ewnjxVjp3Oes90r=NXcXLErOE6hlfVnUPhW1QAehq2pK+SQ+B5YcXfQvdfXkGmWgTnowOj6SgxY3eW2rzn9I0vjPeg9jp2oMz0rpH/lN61PuQrIo9NK98=EwOj/h7Y7j8obR+XeA4DQ9xRo8iexApH9qIw469CNG0F3rIPqxU4eBPrlDT8jCU+t79QerWinxBxAz4Ct0xiq6R67nxXk0xD08DijKYD==',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Edg/131.0.0.0',
     }
 
     # 构建API请求URL
-    url = f'https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={stock_code}&begin={start_date_s}&period=day&type=before&count=1000000&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance&md5__1632=n4%2BxnD0DcD9DRADgGiD%2Fje0%3DGOQIYxDtOQOoae4D'
+    url = f'https://stock.xueqiu.com/v5/stock/chart/kline.json?symbol={stock_code}&begin={start_date_s}&period=day&type=before&count=1000000&indicator=kline,pe,pb,ps,pcf,market_capital,agt,ggt,balance&md5__1632=n4mxuiiti%3DDQ0%3D6KGN3YIvxGwKiq0INLIe6Xodx'
 
     try:
         response = requests.get(url=url, headers=headers)
@@ -102,6 +103,8 @@ def getDayData():
                     '市盈率', '市净率', '市销率', '市现率', '市值', '资金流向'
                 ])
                 writer.writeheader()
+                # 设置东八区时区
+                tz = timezone(timedelta(hours=8))
 
                 for item in kline_data:
                     data_dict = dict(zip(columns, item))
@@ -109,7 +112,7 @@ def getDayData():
                     # 将毫秒级时间戳转换为秒
                     timestamp_s = current_timestamp / 1000.0
                     # 将时间戳转换为 datetime 对象
-                    date_obj = datetime.utcfromtimestamp(timestamp_s)
+                    date_obj = datetime.fromtimestamp(timestamp_s, tz) + timedelta(days=1)
                     # 格式化 datetime 对象为 '年-月-日' 格式
                     formatted_date = date_obj.strftime('%Y-%m-%d')
                     if(formatted_date < end_date):
@@ -254,7 +257,7 @@ def getDataCCI():
     df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
 
     # 计算 CCI
-    cci = CCI(df, period=20)  # 默认周期为 20
+    cci = CCI(df, period=14)  # 默认周期为 20
 
     # 将 NaN 值替换为 None
     cci = [None if pandas.isna(x) else x for x in cci]
