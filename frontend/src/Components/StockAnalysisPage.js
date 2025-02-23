@@ -4,18 +4,26 @@ import SendIcon from '@mui/icons-material/Send';
 import '@fontsource/roboto/700.css';
 import { useState,useEffect  } from 'react';
 import Radio from '@mui/material/Radio';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
 import Grid from '@mui/material/Grid';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
+import Typography from '@mui/material/Typography';
+import Card from '@mui/material/Card';
+import CardContent from '@mui/material/CardContent';
 
 //股票分析页面
 function StockAnalysisPage() {
   const [files, setFiles] = useState([]); // 假设您已经定义了这个状态来存储文件名
+
   const [MACDS1, setMACDS1] = useState({
     DIF: [null],  // 或者 [null]
     DEA: [null],  // 或者 [null]
@@ -42,6 +50,17 @@ function StockAnalysisPage() {
   const [open1, setOpen1] = useState(false);
   const [selectedFile1, setSelectedFile1] = useState(files[0]);
   const [selectedValue1, setSelectedValue1] = useState('');
+  const [inputValue, setinputValue] = useState([]); // 买入点时间
+  const [risk, setRisk] = useState([10]); // 风险
+  const [closePrices, setClosePrices] = useState([]); // 收盘价数据
+  const [stockTimes, setStockTimes] = useState([]);    // 时间数据
+  const [backtestResult, setBacktestResult] = useState({
+    totalReturn: 0,          // 总收益
+    annualizedReturn: 0,     // 年化收益率
+    winRate: 0,              // 胜率
+    transactions: [],        // 交易记录
+    equityCurve: []          // 净值曲线
+  });
 
   // 处理 RadioGroup 变化的函数
   const handleRadioChange1 = (event) => {
@@ -66,6 +85,10 @@ function StockAnalysisPage() {
       console.error('请求失败:', error);
     }
   };
+  // 处理 Select 值的变化
+    const handleRiskChange = (event) => {
+      setRisk(event.target.value);
+    };
 
     const handleFileChange1 = (event) => {
         const newSelectedFile1 = event.target.value; // 获取新选中的文件
@@ -94,6 +117,27 @@ function StockAnalysisPage() {
 
 
     const handleGetDATA = async () => {
+    try {
+        // 获取价格数据
+        const priceUrl = `http://localhost:5000/getStockPrice?selectedFile=${selectedFile1}`;
+        const priceResponse = await fetch(priceUrl);
+        const priceData = await priceResponse.json();
+
+        // 确保数据有效
+        if (!priceData.closePrices || !priceData.times) {
+          throw new Error('价格数据格式错误');
+        }
+
+        // 更新状态
+        setClosePrices(priceData.closePrices);
+        setStockTimes(priceData.times);
+
+        // 其他逻辑...
+      } catch (error) {
+        console.error('价格数据获取失败:', error);
+        alert('价格数据加载失败，请检查文件格式');
+      }
+
       try {
         // 获取 MACD 数据
         let macdUrl = `http://localhost:5000/getDataMACD?selectedFile=${selectedFile1}`;
@@ -178,6 +222,87 @@ function StockAnalysisPage() {
         console.error('请求失败:', error);
       }
     };
+    const handleBacktest = () => {
+  if (!inputValue || !closePrices.length) return;
+
+      const initialCapital = parseFloat(inputValue);
+      let cash = initialCapital;
+      let shares = 0;
+      let totalTrades = 0;
+      let profitableTrades = 0;
+      const equityCurve = [initialCapital];
+      const transactions = [];
+
+      // 风险控制配置
+      const positionSizeMap = {10: 0.3, 30: 0.5, 50: 0.7};
+      const positionSize = positionSizeMap[risk] || 0.5;
+
+      // 创建时间索引映射
+      const timeIndexMap = new Map();
+      stockTimes.forEach((time, index) => {
+        timeIndexMap.set(time, index);
+      });
+
+      // 处理所有交易点
+      [...buyPoints, ...sellPoints]
+        .sort((a, b) => new Date(a.time) - new Date(b.time))
+        .forEach(point => {
+          const index = timeIndexMap.get(point.time);
+          if (index === undefined || index >= closePrices.length) return;
+
+          const price = closePrices[index];
+
+          if (point.type === '买入' && cash > 0) {
+            const investment = cash * positionSize;
+            const sharesBought = investment / price;
+
+            shares += sharesBought;
+            cash -= investment;
+            totalTrades++;
+
+            transactions.push({
+              date: point.time,
+              type: '买入',
+              price,
+              amount: investment
+            });
+          } else if (point.type === '卖出' && shares > 0) {
+            const value = shares * price;
+            cash += value;
+
+            if (value > transactions[transactions.length-1]?.amount) {
+              profitableTrades++;
+            }
+
+            totalTrades++;
+            shares = 0;
+
+            transactions.push({
+              date: point.time,
+              type: '卖出',
+              price,
+              amount: value
+            });
+          }
+
+          // 更新净值
+          equityCurve.push(cash + (shares * price));
+        });
+
+      // 计算收益率
+      const totalReturn = cash + (shares * closePrices[closePrices.length-1]) - initialCapital;
+      const durationYears = (new Date(stockTimes[stockTimes.length-1]) - new Date(stockTimes[0])) / (1000 * 3600 * 24 * 365);
+      const annualizedReturn = durationYears > 0 ? (Math.pow((totalReturn + initialCapital)/initialCapital, 1/durationYears) - 1) * 100: 0;
+
+      setBacktestResult({
+        totalReturn,
+        annualizedReturn: annualizedReturn.toFixed(2),
+        winRate: totalTrades > 0 ? ((profitableTrades / totalTrades) * 100).toFixed(2) : 0,
+        transactions,
+        equityCurve
+      });
+    };
+
 
   useEffect(() => {
     handleGetCsvFiles();
@@ -228,6 +353,8 @@ function StockAnalysisPage() {
            >
     获取指标图像
     </Button>
+    <h2>指标图像</h2>
+
     {selectedValue1 === 'MACD' && (
     <box>
     <LineChart
@@ -292,6 +419,7 @@ function StockAnalysisPage() {
        </box>
     )
     }
+    <h2>买卖操作</h2>
     {/* 添加表格显示买入卖出点 */}
     <TableContainer component={Paper} sx={{ mt: 4 }}>
       <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
@@ -319,6 +447,124 @@ function StockAnalysisPage() {
         </TableBody>
       </Table>
     </TableContainer>
+
+    <h2>策略回测</h2>
+        <div>
+        <div >
+            投入金额:
+        </div>
+         <TextField
+            label="输入理财金额"
+            value={inputValue}
+            onChange={(e) => setinputValue(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+        </div>
+         <div>
+            能承担的风险:
+        </div>
+             <Select
+               labelId="label"
+               id="risk"
+               value={risk} // 绑定 value 到状态
+               onChange={handleRiskChange} // 绑定 onChange 事件
+               label="能承担的风险"
+               sx={{ mt: 1 }}
+             >
+               <MenuItem value="10">低</MenuItem>
+               <MenuItem value="30">中</MenuItem>
+               <MenuItem value="50">高</MenuItem>
+             </Select>
+             <Box sx={{ mt: 4 }}>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleBacktest}
+            sx={{ mb: 2 }}
+          >
+            开始回测
+          </Button>
+
+          {backtestResult.equityCurve.length > 0 && (
+            <Box>
+              <Typography variant="h5" gutterBottom>回测结果</Typography>
+
+              <Grid container spacing={2} sx={{ mb: 4 }}>
+                <Grid item xs={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary">总收益</Typography>
+                      <Typography variant="h4" style={{ color: backtestResult.totalReturn >= 0 ? 'green' : 'red' }}>
+                        {backtestResult.totalReturn.toFixed(2)}元
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary">年化收益率</Typography>
+                      <Typography variant="h4" style={{ color: backtestResult.annualizedReturn >= 0 ? 'green' : 'red' }}>
+                        {backtestResult.annualizedReturn}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="textSecondary">胜率</Typography>
+                      <Typography variant="h4">
+                        {backtestResult.winRate}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Typography variant="h6" gutterBottom>净值曲线</Typography>
+              <LineChart
+                height={300}
+                series={[{
+                  data: backtestResult.equityCurve,
+                  label: '账户净值',
+                  color: '#1976d2'
+                }]}
+                xAxis={[{
+                  scaleType: 'point',
+                  data: Array.from({length: backtestResult.equityCurve.length}, (_, i) => `节点${i+1}`)
+                }]}
+                sx={{ mb: 4 }}
+              />
+
+              <Typography variant="h6" gutterBottom>交易记录</Typography>
+              <TableContainer component={Paper}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>时间</TableCell>
+                      <TableCell>类型</TableCell>
+                      <TableCell>价格（元）</TableCell>
+                      <TableCell>金额（元）</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {backtestResult.transactions.map((tran, index) => (
+                      <TableRow key={index} hover>
+                        <TableCell>{tran.date}</TableCell>
+                        <TableCell style={{ color: tran.type === '买入' ? 'green' : 'red', fontWeight: 'bold' }}>
+                          {tran.type}
+                        </TableCell>
+                        <TableCell>{tran.price.toFixed(2)}</TableCell>
+                        <TableCell>{tran.amount.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+        </Box>
     </box>
   </Grid>
   </Grid>

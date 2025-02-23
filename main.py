@@ -271,5 +271,28 @@ def getDataCCI():
     # 返回 JSON 响应
     return jsonify(response_data)
 
+
+@app.route('/getStockPrice', methods=['GET'])
+def get_stock_price():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+    current_directory = current_directory + "/stock_data/"
+    # 从 CSV 文件中读取数据
+    selectedFile = request.args.get('selectedFile', default=None, type=str)
+    file_path = current_directory + selectedFile
+    df = pandas.read_csv(file_path)
+
+    # 确保价格列是数值类型
+    df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+
+    # 创建响应数据
+    response_data = {
+        'closePrices': df['收盘价'].dropna().tolist(),
+        'times': df['时间'].dropna().tolist()  # 假设时间列也存在 NaN 值
+    }
+
+    # 返回 JSON 响应
+    return jsonify(response_data)
+
 # 启动一个本地开发服务器，激活该网页
 app.run(host='localhost', port=5000, debug=True)
