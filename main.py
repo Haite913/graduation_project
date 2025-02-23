@@ -65,8 +65,12 @@ def getDayData():
     stock_code = request.args.get('code', default=None, type=str)
     start_date = request.args.get('start', default=None, type=str)
     end_date = request.args.get('end', default=None, type=str)
+    end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    end_date = end_date + timedelta(days=1)
+    end_date = end_date.strftime('%Y-%m-%d')
+
     start_date = datetime.strptime(start_date, '%Y-%m-%d')
-    start_date = start_date - timedelta(days=1)
+    # start_date = start_date - timedelta(days=1)
     start_date = start_date.strftime('%Y-%m-%d')
     start_date_s = convert_date_to_timestamp(start_date);
 
@@ -76,7 +80,7 @@ def getDayData():
         return jsonify({"error": "缺少股票代码参数"}), 400
 
     headers = {
-        'Cookie': 'cookiesu=661734449097288; device_id=d5e0c443eea36ebfa394fe87f641040e; s=as1cbvpcls; xq_is_login=1; u=6858200485; xq_a_token=ebd287477080ef7f38a2f48557cd9f7383674046; xqat=ebd287477080ef7f38a2f48557cd9f7383674046; xq_id_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOjY4NTgyMDA0ODUsImlzcyI6InVjIiwiZXhwIjoxNzQxNTY5MTU2LCJjdG0iOjE3Mzg5NzcxNTY5NjIsImNpZCI6ImQ5ZDBuNEFadXAifQ.EpIJojXQks6EhwvRn0CZUxth_JjT61XQDJrYj7QGJtT9JOw5h9Tcm6cSfVPWSd13chKq0i4vVPrjROIDT5FCl1YUWXYp8ikR-015ZMEIGklyo474qi2IhcbRXfqThiXqaxzXDsXGgRznE31NP0vU9dtCGodG3zLuR1ry-X7vlDmbwffqllIm4e34NfGqRPAvcIRBBaooZ_K6dt_1MNyy7-HBNTbLEQerLLUmDkVfKekCMXawVTF0oD_OofLksl92bSNH-RDSTaInomc4nIKOqEH2WF1jkYZEgTmgqL-sOvIvKax5U_6sP8UoNopbf0hOKVx4Sg1ihPdt5eFT0JrmWg; xq_r_token=60450ee73183b954f5c20c698672b87ea25cc209; is_overseas=0; ssxmod_itna=iqfOBKYKiKDIQxl8xCErH2nOlDgGB6mDQuGFqhKDsofDSxGKidDqxBWnlDDt=T=FiYPhaqoErWwF=l68xDkKjRqnpuKx1cje+tAo4GLDmKDyYpoxnYD4SKGwD0eG+DD4DW7qAoDexGpS9wXSDi3D4qDRDAQDzLjMDG3ZDYpSzqDgQeDB+OQDKqGg0LxD0LhTsD3bBEb/KMbPZeDSYhNYfqDMDPGXY7yKfTTzZ6xDgLFYICpy7mrDtqD9WjtDbfQNEDNxvC+EFBmsFGvY3fmeBxmKYrfYYgDbKRPBcAGqeReAbd+sB5DAl7CLox4D; ssxmod_itna2=iqfOBKYKiKDIQxl8xCErH2nOlDgGB6mDQuGFqxikfkqzDl6D7qo03m=DB7MKqnR+z9Yi4Fik=0=MB6edhZWgIP5vOTHwxevEMinm9ArDjbbap+u7S4GVpA2449lnY9WUF61DHwwkvweI/2oCfbohFAqO4wGfeS6ZbG2YogLvfCGRjOKR0kx1tnI6KiTp9SQ7tPvXFpewQqvosbYxa=QYYqRei1R1X3vksqanjg6DZTEylANybY0O=IhIaKtcAegw0WYBYMv6QTuXqdcsIL9f+eZc0EOhRzdIo2yzf=gzBO/kHBIG=MEGxiM6XzxIemXo=P+1LeCpPDeUcNVeoLEN4cw4+m3t2kYXnZmlOmYxjMYK+0UvWGdhLq4wkQp+jECgbE=31jo4ewnjxVjp3Oes90r=NXcXLErOE6hlfVnUPhW1QAehq2pK+SQ+B5YcXfQvdfXkGmWgTnowOj6SgxY3eW2rzn9I0vjPeg9jp2oMz0rpH/lN61PuQrIo9NK98=EwOj/h7Y7j8obR+XeA4DQ9xRo8iexApH9qIw469CNG0F3rIPqxU4eBPrlDT8jCU+t79QerWinxBxAz4Ct0xiq6R67nxXk0xD08DijKYD==',
+        'Cookie': 'cookiesu=661734449097288; device_id=d5e0c443eea36ebfa394fe87f641040e; s=as1cbvpcls; xq_is_login=1; u=6858200485; xq_a_token=eb84426444d056d8c50dce07a57893a96c00e3cf; xqat=eb84426444d056d8c50dce07a57893a96c00e3cf; xq_id_token=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJ1aWQiOjY4NTgyMDA0ODUsImlzcyI6InVjIiwiZXhwIjoxNzQyOTAzMDcwLCJjdG0iOjE3NDAzMTEwNzAwMTcsImNpZCI6ImQ5ZDBuNEFadXAifQ.b_V1wdP4t-Y7MhxYjzYp2Np21_PmDLbxWwyBwp7MQ-gZ7PWui4uLMteDg7Ur_ef3_6b_HZNv3eKd06t6VbXDZLnbjVjepN2tNHOm13XtEsm_Q0iRhzlCJQ49ynzn3nhT3EB6ypxlWxLIU9Gw7SU_yPlc4KrggvleAtnvQfdvfLW2u9Y067dAiKqUIAnrpQNAgWGxjbE_qGEQfqt8m-xWzLzqU4hRZmtKoDZy8WT70YhRvVyHyM-NQz_WYcf5XCXELbCxJpNQiieOsZsuqFPkO4gXUnzsRykzmVkl1d0HYwQ-w4vqEqczmKrbVXeqGNthPhIVh-hUvu0DceDkZ6PfCQ; xq_r_token=d6aa60fb9aaf01704fe34e37f0f1e93debe1d580; is_overseas=0; ssxmod_itna=QqRxBD0D9G0=qAKGQDXmDHiy3YIKGKmxtbpKtYe3b+aD/iEDnqD=GFDK40o3MXedYmm44eHEKj+Gee0im0Phorai0p=ob/CpubqLADB3DEx06x1WixiiSDCeDIDWeDiDGR8D=xGYDjiHXZAqDEDYQDYqGRDB6RjqDfRqGWAu=DmLiDGwI2D7QDIMteDDNeQPxtW7DqACX2jQ2txGUx9weSD0UNxBdY9PxSRmHsrBXZfpeo126PHeGuDG6eEqGm3LudUdio67d6AiPo/RYtK2D44ODP/G+xzYPW+7pNGAhhKBqPSDC/rDDABDfAG8KGDD; ssxmod_itna2=QqRxBD0D9G0=qAKGQDXmDHiy3YIKGKmxtbpKtYe3b4G98wDBqex7PENAS5m7tp8D8huG8q/eMAipqKeMwehhQSW+6GBAtTAet8dteB27r29iLHj98Swkn2x=mIqh8i/PkAbNKQ+CB5ZOpHjEHsnaWh=7T4/pyNcG+rbmy5yC97z1vFSQ0kaOntYor1x=issnGNDharsAibcn5kSADhtOOtttmjXZ5i1=OzZhgsrhET7aT1qnwa4xhtTDrbGr0OgewtxhCQ9BP5bA3X1b0whFAHF4HWmApRegBy+gny15mpb4vthVUtQvQdajlDm/aAq1Llep8xdzgdX1wYo4YIAz7wcpjICIhBtoYxqiELivXWKA0E=RD5cDFODQKqqj=tBD6iDdPm8fpKj6WBYp7febfpmYmlhn0emAGbZxHUYEmYCxKolnv7uB2IGzT5PQtzR8BREQhyaePnowa5YiX5c5Yn6PUKvCIG=KG=cAQdvBPk7+lCvbZqXlrbA0YYeZ2hliD070qwNAojLWrsWKg9qFZQNPqFgUIpmnQLzCf17mzDhqZgQ5ycnqYEqqD3KhHr3Qp8mqX6Ae4RWwXxhrht3pYX8DYbYfOwciDPn4DQ9EihNzMOb/kmqcCHwhEtS+BGUjWiUQi1bQjCvx/U0LTBWpQXrw/7+YGejtG1XLpPxD08DijzDuxAfKi4eD',
         'User-Agent': 'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36 Edg/131.0.0.0',
     }
 
@@ -112,7 +116,7 @@ def getDayData():
                     # 将毫秒级时间戳转换为秒
                     timestamp_s = current_timestamp / 1000.0
                     # 将时间戳转换为 datetime 对象
-                    date_obj = datetime.fromtimestamp(timestamp_s, tz) + timedelta(days=1)
+                    date_obj = datetime.fromtimestamp(timestamp_s, tz)
                     # 格式化 datetime 对象为 '年-月-日' 格式
                     formatted_date = date_obj.strftime('%Y-%m-%d')
                     if(formatted_date < end_date):
