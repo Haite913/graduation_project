@@ -11,6 +11,7 @@ import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
+import InputLabel from '@mui/material/InputLabel';
 import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
 import Grid from '@mui/material/Grid';
 import { LineChart } from '@mui/x-charts/LineChart';
@@ -19,10 +20,84 @@ import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+// 新增导入Slider组件
+import Slider from '@mui/material/Slider';
 
 //股票分析页面
 function StockAnalysisPage() {
-  const [files, setFiles] = useState([]); // 假设您已经定义了这个状态来存储文件名
+    const [files, setFiles] = useState([]); // 假设您已经定义了这个状态来存储文件名
+    // 新增状态管理数据范围
+    const [dataRange, setDataRange] = useState([0, 100]);
+    const [maxDataLength, setMaxDataLength] = useState(100);
+    const stockData = [
+      { code: 'SH:000300', name: '沪深300' },
+      { code: 'SH:600519', name: '贵州茅台' },
+      { code: 'SH:688256', name: '寒武纪' },
+      { code: 'SZ:002371', name: '北方华创' },
+      { code: 'SH:688692', name: '武汉达梦' },
+      { code: 'SZ:002594', name: '比亚迪' },
+      { code: 'SH:688617', name: '惠泰医疗' },
+      { code: 'SH:688608', name: '恒玄科技' },
+      { code: 'SH:688111', name: '金山办公' },
+      { code: 'SZ:300033', name: '同花顺' },
+      { code: 'SH:688279', name: '峰岹科技' },
+      { code: 'SZ:300750', name: '宁德时代' },
+      { code: 'SH:601318', name: '中国平安' },
+      { code: 'SH:600036', name: '招商银行' },
+      { code: 'SH:601012', name: '隆基绿能' },
+      { code: 'SZ:000858', name: '五粮液' },
+      { code: 'SH:600104', name: '上汽集团' },
+      { code: 'SH:688629', name: '华丰科技' },
+      { code: 'SZ:301165', name: '锐捷网络' },
+      { code: 'SZ:301202', name: '朗威股份' },
+      { code: 'SZ:300214', name: '日科化学' },
+      { code: 'SZ:300068', name: '南都电源' },
+      { code: 'SZ:301510', name: '固高科技' },
+      { code: 'SZ:300817', name: '双飞集团' },
+      { code: 'SZ:300442', name: '润泽科技' },
+      { code: 'SH:601888', name: '中国中免' },
+      { code: 'SH:600048', name: '保利发展' },
+      { code: 'SH:688016', name: '心脉医疗' },
+      { code: 'SH:688012', name: '中微公司' },
+      { code: 'SH:688002', name: '睿创微纳' },
+      { code: 'SH:688003', name: '天准科技' },
+      { code: 'SH:688008', name: '澜起科技' },
+      { code: 'SH:688010', name: '博瑞医药' },
+      { code: 'SH:688011', name: '新光光电' },
+      { code: 'SH:688013', name: '天臣医疗' },
+      { code: 'SH:688015', name: '道通科技' },
+      { code: 'SH:688020', name: '方邦股份' },
+      { code: 'SH:688021', name: '奥福环保' },
+      { code: 'SH:688022', name: '瀚川智能' },
+      { code: 'SH:688023', name: '安恒信息' },
+      { code: 'SH:688024', name: '杭可科技' },
+      { code: 'SH:688025', name: '杰普特' },
+      { code: 'SH:688026', name: '洁特生物' },
+      { code: 'SH:688027', name: '国盾量子' },
+      { code: 'SH:688028', name: '沃尔德' },
+      { code: 'SH:688029', name: '南微医学' },
+      { code: 'SH:688030', name: '山石网科' },
+      { code: 'SH:688032', name: '海尔生物' },
+      { code: 'SH:688033', name: '航天宏图' },
+      { code: 'SH:688035', name: '威胜信息' },
+      { code: 'SH:688038', name: '清溢光电' },
+      { code: 'SH:688039', name: '传音控股' },
+      { code: 'SH:688040', name: '金科环境' },
+      { code: 'SH:688041', name: '安路科技' },
+      { code: 'SH:688043', name: '华兴源创' },
+      { code: 'SH:688045', name: '当虹科技' },
+      { code: 'SH:688046', name: '晶丰明源' },
+      { code: 'SH:688047', name: '龙腾光电' },
+      { code: 'SH:688048', name: '长阳科技' },
+      { code: 'SH:688052', name: '容百科技' },
+      { code: 'SH:688053', name: '思特威' },
+      { code: 'SH:688055', name: '德林海' },
+      { code: 'SH:688056', name: '芯原股份' },
+      { code: 'SH:600865', name: '百大集团' },
+      { code: 'SH:601933', name: '永辉超市' },
+      { code: 'SZ:300547', name: '川环科技' },
+
+    ];
 
   const [MACDS1, setMACDS1] = useState({
     DIF: [null],  // 或者 [null]
@@ -115,6 +190,16 @@ function StockAnalysisPage() {
         setSelectedFile1(newSelectedFile1); // 更新选中的文件
     };
 
+    // 新增滑动条变化处理
+     const handleSliderChange = (event, newValue) => {
+       setDataRange(newValue);
+     };
+
+        // 生成切片后的数据
+     const getSlicedData = (dataArray) => {
+       return dataArray.slice(dataRange[0], dataRange[1] + 1);
+     };
+
 
     const handleGetDATA = async () => {
     try {
@@ -167,6 +252,11 @@ function StockAnalysisPage() {
         let cciRawData = await cciResponse.text();
         let cciData = JSON.parse(cciRawData.replace(/NaN/g, 'null'));
         setCCIS1(cciData);
+
+          // 数据获取完成后更新最大长度
+        const dataLength = macdData.TIME.length;
+        setMaxDataLength(dataLength);
+        setDataRange([Math.max(0, dataLength - 100), dataLength - 1]);
 
         // 计算买入和卖出点
         const buyPoints1 = [];
@@ -315,23 +405,41 @@ function StockAnalysisPage() {
     <box style={{ padding:"10px 20px",display:"flex",flexDirection:"column"}}>
     <FormControl>
       <h1>请选择股票</h1>
-            <FormLabel id="demo-row-radio-buttons-group-label">股票</FormLabel>
-      <RadioGroup
-        aria-labelledby="demo-radio-buttons-group-label"
-        defaultValue={selectedFile1} // 假设默认选择第一个文件
-        name="radio-buttons-group"
-        onClick={handleFileChange1}
+            <FormLabel id="demo-row-radio-buttons-group-label" style={{ padding:"20px 0px"}}>股票</FormLabel>
+      <FormControl fullWidth>
+      <InputLabel id="stock-select-label">选择股票文件</InputLabel>
+      <Select
+        labelId="stock-select-label"
+        value={selectedFile1}
+        label="选择股票文件"
+        onChange={handleFileChange1}
+        renderValue={(value) => {
+          const stock = stockData.find(s => `${s.code.replace(':', '')}.csv` === value);
+          return stock ? `${stock.name} (${stock.code})` : value;
+        }}
       >
-        {files.map((item) => (
-          <FormControlLabel
-            key={item}
-            value={item}
-            control={<Radio />}
-            label={item}
-          />
-        ))}
-      </RadioGroup>
-      <FormLabel id="demo-row-radio-buttons-group-label">指标</FormLabel>
+        {files.map((file) => {
+          // 从文件名中提取股票代码（假设文件名格式为 SH600519.csv）
+          const codeFromFile = file.split('.')[0];
+          // 匹配股票数据
+          const stock = stockData.find(s => s.code.replace(':', '') === codeFromFile);
+
+          return (
+            <MenuItem key={file} value={file}>
+              {stock ? (
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                  <span>{stock.name}</span>
+                  <span style={{ color: '#666' }}>{stock.code}</span>
+                </div>
+              ) : (
+                file // 如果没有匹配的股票数据，直接显示文件名
+              )}
+            </MenuItem>
+          );
+        })}
+      </Select>
+    </FormControl>
+      <FormLabel id="demo-row-radio-buttons-group-label" style={{ padding:"10px 0px 10px 0px"}}>指标</FormLabel>
       <RadioGroup
         row
         aria-labelledby="demo-row-radio-buttons-group-label"
@@ -355,70 +463,180 @@ function StockAnalysisPage() {
     </Button>
     <h2>指标图像</h2>
 
-    {selectedValue1 === 'MACD' && (
-    <box>
-    <LineChart
-    height={400}
-    open={open1}
-    series={[
-         { data: MACDS1.DEA, label: 'DEA',color:'blue', showMark: false },
-         { data: MACDS1.DIF, label: 'DIF',color:'orange', showMark: false },
-    ]}
-    xAxis={[{ scaleType: 'point', data: MACDS1.TIME }]}
+    {selectedValue1 && (
+  <Box sx={{ width: '100%', mt: 0 }}>
+    <Typography gutterBottom>数据范围选择</Typography>
+    <Slider
+      value={dataRange}
+      onChange={handleSliderChange}
+      valueLabelDisplay="auto"
+      min={0}
+      max={maxDataLength - 1}
+      valueLabelFormat={(value) => {
+        const dateArray = selectedValue1 === 'MACD' ? MACDS1.TIME :
+                        selectedValue1 === 'KDJ' ? KDJS1.TIME :
+                        selectedValue1 === 'RSI' ? RSIS1.TIME : CCIS1.TIME;
+        return dateArray?.[value] || value;
+      }}
+      sx={{
+        maxWidth: '90%',
+        margin: '0 auto',
+        '& .MuiSlider-thumb': {
+          backgroundColor: '#1976d2',
+        },
+        '& .MuiSlider-track': {
+          backgroundColor: '#1976d2',
+        }
+      }}
+    />
+  </Box>
+)}
 
-    />
-    <BarChart
-    height={400}
-    open={open1}
-    series={[
-         { data: MACDS1.MACD, label: 'MACD',color:"green"},
-    ]}
-    xAxis={[{ scaleType: 'band', data: MACDS1.TIME }]}
-    />
-    </box>
-    )
-    }
+    {selectedValue1 === 'MACD' && (
+      <Box>
+        <LineChart
+          height={400}
+          series={[
+            {
+              data: getSlicedData(MACDS1.DEA),
+              label: 'DEA',
+              color: 'blue',
+              showMark: false
+            },
+            {
+              data: getSlicedData(MACDS1.DIF),
+              label: 'DIF',
+              color: 'orange',
+              showMark: false
+            },
+          ]}
+          xAxis={[{
+            scaleType: 'point',
+            data: getSlicedData(MACDS1.TIME),
+            tickLabelStyle: {
+              angle: 45,
+              textAnchor: 'start',
+              fontSize: 12
+            }
+          }]}
+          margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+        />
+        <BarChart
+          height={400}
+          series={[
+            {
+              data: getSlicedData(MACDS1.MACD),
+              label: 'MACD',
+              color: 'green',
+              highlightScope: { highlighted: 'series' }
+            }
+          ]}
+          xAxis={[{
+            scaleType: 'band',
+            data: getSlicedData(MACDS1.TIME),
+            tickLabelStyle: {
+              angle: 45,
+              textAnchor: 'start',
+              fontSize: 12
+            }
+          }]}
+          margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+        />
+      </Box>
+    )}
+
     {selectedValue1 === 'KDJ' && (
-       <box>
-    <LineChart
-    height={400}
-    open={open1}
-    series={[
-         { data: KDJS1.K, label: 'K',color:'#f6ae42', showMark: false },
-         { data: KDJS1.D, label: 'D',color:'#4788c4', showMark: false },
-         { data: KDJS1.J, label: 'J',color:'#d25cb3', showMark: false },
-    ]}
-        xAxis={[{ scaleType: 'point', data: KDJS1.TIME }]}
-    />
-       </box>
-    )
-    }
+      <Box>
+        <LineChart
+          height={400}
+          series={[
+            {
+              data: getSlicedData(KDJS1.K),
+              label: 'K',
+              color: '#f6ae42',
+              showMark: false
+            },
+            {
+              data: getSlicedData(KDJS1.D),
+              label: 'D',
+              color: '#4788c4',
+              showMark: false
+            },
+            {
+              data: getSlicedData(KDJS1.J),
+              label: 'J',
+              color: '#d25cb3',
+              showMark: false
+            }
+          ]}
+          xAxis={[{
+            scaleType: 'point',
+            data: getSlicedData(KDJS1.TIME),
+            tickLabelStyle: {
+              angle: 45,
+              textAnchor: 'start',
+              fontSize: 12
+            }
+          }]}
+          margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+        />
+      </Box>
+    )}
+
     {selectedValue1 === 'RSI' && (
-       <box>
-    <LineChart
-    height={400}
-    open={open1}
-    series={[
-         { data: RSIS1.RSI, label: 'RSI',color:'#f6ae42', showMark: false },
-    ]}
-        xAxis={[{ scaleType: 'point', data: RSIS1.TIME }]}
-    />
-       </box>
-    )
-    }
+      <Box>
+        <LineChart
+          height={400}
+          series={[
+            {
+              data: getSlicedData(RSIS1.RSI),
+              label: 'RSI',
+              color: '#f6ae42',
+              showMark: false,
+              curve: 'natural'
+            }
+          ]}
+          xAxis={[{
+            scaleType: 'point',
+            data: getSlicedData(RSIS1.TIME),
+            tickLabelStyle: {
+              angle: 45,
+              textAnchor: 'start',
+              fontSize: 12
+            }
+          }]}
+          yAxis={[{ min: 0, max: 100 }]}
+          margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+        />
+      </Box>
+    )}
+
     {selectedValue1 === 'CCI' && (
-       <box>
-    <LineChart
-    height={400}
-    open={open1}
-    series={[
-         { data: CCIS1.CCI, label: 'CCI',color:'blue', showMark: false },
-    ]}
-        xAxis={[{ scaleType: 'point', data: CCIS1.TIME }]}
-    />
-       </box>
-    )
-    }
+      <Box>
+        <LineChart
+          height={400}
+          series={[
+            {
+              data: getSlicedData(CCIS1.CCI),
+              label: 'CCI',
+              color: 'blue',
+              showMark: false,
+              curve: 'natural'
+            }
+          ]}
+          xAxis={[{
+            scaleType: 'point',
+            data: getSlicedData(CCIS1.TIME),
+            tickLabelStyle: {
+              angle: 45,
+              textAnchor: 'start',
+              fontSize: 12
+            }
+          }]}
+          margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+        />
+      </Box>
+    )}
     <h2>买卖操作</h2>
     {/* 添加表格显示买入卖出点 */}
     <TableContainer component={Paper} sx={{ mt: 4 }}>
