@@ -25,6 +25,7 @@ import Slider from '@mui/material/Slider';
 
 //股票分析页面
 function StockAnalysisPage() {
+    const [showIndicator, setShowIndicator] = useState(false);
     const [files, setFiles] = useState([]); // 假设您已经定义了这个状态来存储文件名
     // 新增状态管理数据范围
     const [dataRange, setDataRange] = useState([0, 100]);
@@ -122,7 +123,6 @@ function StockAnalysisPage() {
 
   const [buyPoints, setBuyPoints] = useState([]); // 买入点时间
   const [sellPoints, setSellPoints] = useState([]); // 卖出点时间
-  const [open1, setOpen1] = useState(false);
   const [selectedFile1, setSelectedFile1] = useState(files[0]);
   const [selectedValue1, setSelectedValue1] = useState('');
   const [inputValue, setinputValue] = useState([]); // 买入点时间
@@ -142,6 +142,8 @@ function StockAnalysisPage() {
     // 更新状态变量为选中的值
     setSelectedValue1(event.target.value);
   };
+
+
 
   const handleGetCsvFiles = async () => {
   try {
@@ -207,6 +209,9 @@ function StockAnalysisPage() {
         const priceUrl = `http://localhost:5000/getStockPrice?selectedFile=${selectedFile1}`;
         const priceResponse = await fetch(priceUrl);
         const priceData = await priceResponse.json();
+
+        // 你原来的逻辑...
+        setShowIndicator(true);  // 显示指标选择
 
         // 确保数据有效
         if (!priceData.closePrices || !priceData.times) {
@@ -307,27 +312,34 @@ function StockAnalysisPage() {
         console.log(buyPoints);
         console.log(sellPoints);
 
-        setOpen1(true);
       } catch (error) {
         console.error('请求失败:', error);
       }
     };
-    const handleBacktest = () => {
-  if (!inputValue || !closePrices.length) return;
-
+   const handleBacktest = () => {
+      //判断是否有输入以及是否有收盘价
+      if (!inputValue || !closePrices.length) return;
+      //初始资金
       const initialCapital = parseFloat(inputValue);
       let cash = initialCapital;
+      //持有股票数量
       let shares = 0;
+      //总交易次数
       let totalTrades = 0;
+      //盈利的次数
       let profitableTrades = 0;
+      //净值曲线
       const equityCurve = [initialCapital];
+      //交易记录
       const transactions = [];
 
       // 风险控制配置
       const positionSizeMap = {10: 0.3, 30: 0.5, 50: 0.7};
+      //记录当前的仓位比例
       const positionSize = positionSizeMap[risk] || 0.5;
 
       // 创建时间索引映射
+      //将时间与收盘价索引创造映射
       const timeIndexMap = new Map();
       stockTimes.forEach((time, index) => {
         timeIndexMap.set(time, index);
@@ -341,13 +353,17 @@ function StockAnalysisPage() {
           if (index === undefined || index >= closePrices.length) return;
 
           const price = closePrices[index];
-
+          //买入逻辑
           if (point.type === '买入' && cash > 0) {
+            //计算买入金额
             const investment = cash * positionSize;
+            //计算买入的股票数量
             const sharesBought = investment / price;
-
+            //更新持股数量
             shares += sharesBought;
+            //更新可用现金
             cash -= investment;
+            //总交易次数
             totalTrades++;
 
             transactions.push({
@@ -356,23 +372,85 @@ function StockAnalysisPage() {
               price,
               amount: investment
             });
-          } else if (point.type === '卖出' && shares > 0) {
-            const value = shares * price;
-            cash += value;
 
-            if (value > transactions[transactions.length-1]?.amount) {
+            // 检查是否胜利
+            const currentValue = cash + (shares * price);
+            if (currentValue > initialCapital) {
               profitableTrades++;
             }
+          } else if (point.type === '卖出' && shares > 0) {
+            //获得最近一次买入价格
+            const initialPrice = transactions[transactions.length - 1]?.price || price;
+            //计算盈亏百分比
+            const profitPercentage = ((price - initialPrice) / initialPrice) * 100;
 
-            totalTrades++;
-            shares = 0;
+            // 第1批：盈利5%时卖出1/3，止损3%
+            if (profitPercentage >= 5 || profitPercentage <= -3) {
+              const sharesToSell = shares / 3;
+              const value = sharesToSell * price;
+              cash += value;
+              shares -= sharesToSell;
 
-            transactions.push({
-              date: point.time,
-              type: '卖出',
-              price,
-              amount: value
-            });
+              transactions.push({
+                date: point.time,
+                type: '卖出',
+                price,
+                amount: value
+              });
+
+              totalTrades++;
+
+              // 检查是否胜利
+              const currentValue = cash + (shares * price);
+              if (currentValue > initialCapital) {
+                profitableTrades++;
+              }
+            }
+
+            // 第2批：盈利10%时卖出1/3，止损5%
+            if (profitPercentage >= 10 || profitPercentage <= -5) {
+              const sharesToSell = shares / 3;
+              const value = sharesToSell * price;
+              cash += value;
+              shares -= sharesToSell;
+
+              transactions.push({
+                date: point.time,
+                type: '卖出',
+                price,
+                amount: value
+              });
+
+              totalTrades++;
+
+              // 检查是否胜利
+              const currentValue = cash + (shares * price);
+              if (currentValue > initialCapital) {
+                profitableTrades++;
+              }
+            }
+
+            // 第3批：跟踪止盈（如跌破10日均线卖出），止损8%
+            if (profitPercentage <= -8) {
+              const value = shares * price;
+              cash += value;
+              shares = 0;
+
+              transactions.push({
+                date: point.time,
+                type: '卖出',
+                price,
+                amount: value
+              });
+
+              totalTrades++;
+
+              // 检查是否胜利
+              const currentValue = cash + (shares * price);
+              if (currentValue > initialCapital) {
+                profitableTrades++;
+              }
+            }
           }
 
           // 更新净值
@@ -380,14 +458,17 @@ function StockAnalysisPage() {
         });
 
       // 计算收益率
-      const totalReturn = cash + (shares * closePrices[closePrices.length-1]) - initialCapital;
-      const durationYears = (new Date(stockTimes[stockTimes.length-1]) - new Date(stockTimes[0])) / (1000 * 3600 * 24 * 365);
-      const annualizedReturn = durationYears > 0 ? (Math.pow((totalReturn + initialCapital)/initialCapital, 1/durationYears) - 1) * 100: 0;
+      const totalReturn = cash + (shares * closePrices[closePrices.length - 1]) - initialCapital;
+      const durationYears = (new Date(stockTimes[stockTimes.length - 1]) - new Date(stockTimes[0])) / (1000 * 3600 * 24 * 365);
+      const annualizedReturn = durationYears > 0 ? (Math.pow((totalReturn + initialCapital) / initialCapital, 1 / durationYears) - 1) * 100 : 0;
+
+      // 计算胜率
+      const winRate = totalTrades >= 0 ? ((profitableTrades / totalTrades) * 100).toFixed(2) : 0;
 
       setBacktestResult({
         totalReturn,
         annualizedReturn: annualizedReturn.toFixed(2),
-        winRate: totalTrades > 0 ? ((profitableTrades / totalTrades) * 100).toFixed(2) : 0,
+        winRate,
         transactions,
         equityCurve
       });
@@ -439,29 +520,37 @@ function StockAnalysisPage() {
         })}
       </Select>
     </FormControl>
-      <FormLabel id="demo-row-radio-buttons-group-label" style={{ padding:"10px 0px 10px 0px"}}>指标</FormLabel>
-      <RadioGroup
-        row
-        aria-labelledby="demo-row-radio-buttons-group-label"
-        name="row-radio-buttons-group"
-        onChange={handleRadioChange1} // 设置 onChange 事件处理函数
-        value={selectedValue1}  // 设置 RadioGroup 的 value 为状态变量
-      >
-        <FormControlLabel value="MACD" control={<Radio />} label="MACD" />
-        <FormControlLabel value="KDJ" control={<Radio />} label="KDJ" />
-        <FormControlLabel value="RSI" control={<Radio />} label="RSI" />
-        <FormControlLabel value="CCI" control={<Radio />} label="CCI" />
-      </RadioGroup>
+
     </FormControl>
-    <Button
-             variant="contained"
-             endIcon={<SendIcon />}
-             onClick={handleGetDATA}
-             sx={{ mt: 4 }}
-           >
-    获取指标图像
-    </Button>
+     <Button
+       variant="contained"
+       endIcon={<SendIcon />}
+       onClick={handleGetDATA}
+       sx={{ mt: 4 }}
+     >
+       获取指标图像
+     </Button>
     <h2>指标图像</h2>
+     {/* 条件渲染指标选择 */}
+     {showIndicator && (
+       <>
+         <FormLabel id="demo-row-radio-buttons-group-label" style={{ padding: "10px 0px 10px 0px" }}>
+           指标
+         </FormLabel>
+         <RadioGroup
+           row
+           aria-labelledby="demo-row-radio-buttons-group-label"
+           name="row-radio-buttons-group"
+           onChange={handleRadioChange1}
+           value={selectedValue1}
+         >
+           <FormControlLabel value="MACD" control={<Radio />} label="MACD" />
+           <FormControlLabel value="KDJ" control={<Radio />} label="KDJ" />
+           <FormControlLabel value="RSI" control={<Radio />} label="RSI" />
+           <FormControlLabel value="CCI" control={<Radio />} label="CCI" />
+         </RadioGroup>
+       </>
+     )}
 
     {selectedValue1 && (
   <Box sx={{ width: '100%', mt: 0 }}>
