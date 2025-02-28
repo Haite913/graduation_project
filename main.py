@@ -64,11 +64,12 @@ def process_stock_code(stock_code):
     if stock_code.startswith("HK:"):
         return stock_code[3:]
 
-    # 美股处理（例如 NASDAQ:.IXIC → NASDAQ.IXIC）
-    us_exchanges = ["NASDAQ:", "NYSE:", "AMEX:"]  # 可根据需要添加其他交易所
+    # 美股处理（例如 NASDAQ:NVVE → NVVE）
+    us_exchanges = ["NASDAQ", "NYSE", "AMEX"]  # 可根据需要添加其他交易所
     for exchange in us_exchanges:
-        if stock_code.startswith(exchange):
-            return stock_code.replace(":", ".")  # 将冒号替换为点
+        prefix = f"{exchange}:"
+        if stock_code.startswith(prefix):
+            return stock_code[len(prefix):]
 
     # 默认处理（沪深及其他市场）：移除所有冒号（例如 SH::600000 → SH600000）
     return re.sub(r":", "", stock_code)
