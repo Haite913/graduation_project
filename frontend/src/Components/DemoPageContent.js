@@ -71,7 +71,8 @@ const stockData = [
   { code: 'SH:688053', name: '思特威' },
   { code: 'SH:688055', name: '德林海' },
   { code: 'SH:688056', name: '芯原股份' },
-
+  { code: 'HK:00379', name: '恒嘉融资租赁' },
+  { code: 'NASDAQ:.IXIC', name: '纳斯达克综合指数' }
 ];
 
 function DemoPageContent({ pathname }) {

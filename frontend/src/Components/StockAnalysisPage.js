@@ -97,7 +97,8 @@ function StockAnalysisPage() {
       { code: 'SH:600865', name: '百大集团' },
       { code: 'SH:601933', name: '永辉超市' },
       { code: 'SZ:300547', name: '川环科技' },
-
+      { code: '00379', name: '恒嘉融资租赁' },
+      { code: '.IXIC', name: '纳斯达克综合指数' },
     ];
 
   const [MACDS1, setMACDS1] = useState({
@@ -474,6 +475,19 @@ function StockAnalysisPage() {
       });
     };
 
+    // 前端股票代码处理函数（需与Python版process_stock_code逻辑一致）
+const processStockCode = (code) => {
+  // 港股处理 HK:00379 → 00379
+  if (code.startsWith("HK:")) return code.slice(3);
+
+  // 美股处理 NASDAQ:.IXIC → NASDAQ.IXIC
+  if (code.startsWith("NASDAQ:") || code.startsWith("NYSE:") || code.startsWith("AMEX:")) {
+    return code.replace(':', '.'); // 将冒号替换为点
+  }
+
+  // 沪深处理（移除所有冒号）SH::600000 → SH600000
+  return code.replace(/:/g, "");
+};
 
   useEffect(() => {
     handleGetCsvFiles();
@@ -500,20 +514,27 @@ function StockAnalysisPage() {
         }}
       >
         {files.map((file) => {
-          // 从文件名中提取股票代码（假设文件名格式为 SH600519.csv）
-          const codeFromFile = file.split('.')[0];
-          // 匹配股票数据
-          const stock = stockData.find(s => s.code.replace(':', '') === codeFromFile);
+          // 从文件名中提取股票代码（例如 00379.csv → 00379）
+          const codeFromFile = file.split('.')[0]; // 提取文件名中的代码部分
+
+          // 处理原始数据中的股票代码（与后端处理逻辑保持一致）
+          const processedStockCodes = stockData.map(s => ({
+            ...s,
+            processedCode: processStockCode(s.code) // 添加前端处理函数
+          }));
+
+          // 匹配处理后的股票代码
+          const stock = processedStockCodes.find(s => s.processedCode === codeFromFile);
 
           return (
             <MenuItem key={file} value={file}>
               {stock ? (
                 <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                   <span>{stock.name}</span>
-                  <span style={{ color: '#666' }}>{stock.code}</span>
+                  <span style={{ color: '#666' }}>{stock.code}</span> {/* 显示原始代码 */}
                 </div>
               ) : (
-                file // 如果没有匹配的股票数据，直接显示文件名
+                file
               )}
             </MenuItem>
           );

@@ -55,6 +55,24 @@ def getCsvFile():
     # 返回 JSON 响应
     return {'csv_files': csv_files}
 
+#根据不同的股票类型截取股票代码
+#参数：股票代码
+#返回:截取后的股票代码
+def process_stock_code(stock_code):
+    """根据股票代码前缀处理不同市场的代码"""
+    # 港股处理（例如 HK:00379 → 00379）
+    if stock_code.startswith("HK:"):
+        return stock_code[3:]
+
+    # 美股处理（例如 NASDAQ:.IXIC → NASDAQ.IXIC）
+    us_exchanges = ["NASDAQ:", "NYSE:", "AMEX:"]  # 可根据需要添加其他交易所
+    for exchange in us_exchanges:
+        if stock_code.startswith(exchange):
+            return stock_code.replace(":", ".")  # 将冒号替换为点
+
+    # 默认处理（沪深及其他市场）：移除所有冒号（例如 SH::600000 → SH600000）
+    return re.sub(r":", "", stock_code)
+
 #根据股票代码，起始日期，结束日期从雪球网获取股票数据
 #参数：code(股票代码),start(起始时间),end(结束时间)
 #返回: 股票数据
@@ -74,7 +92,7 @@ def getDayData():
     start_date = start_date.strftime('%Y-%m-%d')
     start_date_s = convert_date_to_timestamp(start_date);
 
-    stock_code = re.sub(r"[::]", "", stock_code)
+    stock_code = process_stock_code(stock_code)  # 替换原来的 re.sub 逻辑
 
     if not stock_code:
         return jsonify({"error": "缺少股票代码参数"}), 400
