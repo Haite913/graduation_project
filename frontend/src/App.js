@@ -6,8 +6,10 @@ import { AppProvider, type Navigation } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import '@fontsource/roboto/700.css';
-import StockAnalysisPage from './Components/DemoPageContent'
-import DemoPageContent from './Components/StockAnalysisPage'
+import StockAnalysisPage from './Components/StockAnalysisPage'
+import DemoPageContent from './Components/DemoPageContent'
+import SingleIndicatorPage from './Components/SingleIndicatorPage'
+import MultiIndicatorPage from './Components/MultiIndicatorPage'
 /*
     设置网页菜单结构
     kind:'header'设置菜单头;kind:'divider'设置分割线
@@ -31,8 +33,13 @@ const NAVIGATION: Navigation = [
     title: '副菜单',
   },
   {
-    segment: 'integrations',
-    title: '股票分析',
+    segment: 'single',
+    title: '单指标分析',
+    icon: <LayersIcon />,
+  },
+  {
+    segment: 'multi',
+    title: '多指标分析',
     icon: <LayersIcon />,
   },
 ];
@@ -64,11 +71,14 @@ function DashboardLayoutBasic({ window }) {
 
   let pageContent;
   switch (pathname) {
-    case '/integrations':
-      pageContent = <DemoPageContent pathname={pathname} />;
+    case '/single':
+      pageContent = <SingleIndicatorPage pathname={pathname} />;
+      break;
+    case '/multi':
+      pageContent = <MultiIndicatorPage pathname={pathname} />;
       break;
     default:
-      pageContent = <StockAnalysisPage />;
+      pageContent = <DemoPageContent />;
   }
 
   return (

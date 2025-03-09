@@ -3,9 +3,10 @@ import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
 import Button from '@mui/material/Button';
-import SendIcon from '@mui/icons-material/Send';
+import AddIcon from './images/add.png';
+import DateIcon from './images/date.png';
 import '@fontsource/roboto/700.css';
-import { useState  } from 'react';
+import { useState } from 'react';
 
 const stockData = [
   { code: 'SH:000300', name: '沪深300' },
@@ -68,7 +69,6 @@ const stockData = [
   { code: 'SH:688047', name: '龙腾光电' },
   { code: 'SH:688048', name: '长阳科技' },
   { code: 'SH:688052', name: '容百科技' },
-  { code: 'SH:688053', name: '思特威' },
   { code: 'SH:688055', name: '德林海' },
   { code: 'SH:688056', name: '芯原股份' },
   { code: 'HK:00379', name: '恒嘉融资租赁' },
@@ -81,10 +81,17 @@ function DemoPageContent({ pathname }) {
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [inputValue, setInputValue] = useState('');
 
- const handleGetStockData = async () => {
-  try {
+  // 计算十年前的日期
+  const getTenYearsAgoDate = () => {
+    const today = new Date();
+    const tenYearsAgo = new Date(today.getFullYear() - 10, today.getMonth(), today.getDate());
+    return tenYearsAgo.toISOString().split('T')[0];
+  };
+
+  const handleGetStockData = async () => {
+    try {
       // 构建请求的 URL 或请求体，这里假设是 GET 请求
-      const url = 'http://localhost:5000/getDayData?code='+stockCode+'&start='+startDate+'&end='+endDate;
+      const url = 'http://localhost:5000/getDayData?code=' + stockCode + '&start=' + startDate + '&end=' + endDate;
 
       // 发送请求
       const response = await fetch(url);
@@ -98,6 +105,15 @@ function DemoPageContent({ pathname }) {
     }
   };
 
+  const handleTenYearData = () => {
+    // 设置起始日期为十年前的今天
+    setStartDate(getTenYearsAgoDate());
+    // 设置结束日期为今天
+    setEndDate(new Date().toISOString().split('T')[0]);
+    // 获取股票数据
+    handleGetStockData();
+  };
+
   return (
     <Box
       sx={{
@@ -108,55 +124,63 @@ function DemoPageContent({ pathname }) {
         textAlign: 'center',
       }}
     >
-           <h1>获取股票数据</h1>
-           <h2>输入股票代码</h2>
-           <div>
-                     <Autocomplete
-                       options={stockData}
-                       getOptionLabel={(option) => `${option.code} - ${option.name}`}
-                       inputValue={inputValue}
-                       onInputChange={(event, newInputValue) => {
-                         setInputValue(newInputValue);
-                       }}
-                       onChange={(event, newValue) => {
-                         if (newValue) {
-                           setStockCode(newValue.code);
-                         }
-                       }}
-                       renderInput={(params) => (
-                         <TextField
-                           {...params}
-                           label="股票代码"
-                           value={stockCode}
-                           onChange={(e) => setStockCode(e.target.value)}
-                           sx={{ mb: 2 , width: '400px'}} // 添加一些间距
-                         />
-                       )}
-                     />
-            </div>
-           <h2>选择股票数据时间范围</h2>
-           <TextField
-             label="起始日期"
-             type="date"
-             value={startDate}
-             onChange={(e) => setStartDate(e.target.value)}
-             sx={{ mb: 2 }}
-           />
-           <TextField
-             type="date"
-             label="结束日期"
-             value={endDate}
-             onChange={(e) => setEndDate(e.target.value)}
-             sx={{ mb: 2 }}
-           />
-           <Button
-             variant="contained"
-             endIcon={<SendIcon />}
-             onClick={handleGetStockData}
-             sx={{ mt: 4 }}
-           >
-             获取股票数据
-           </Button>
+      <h1>获取股票数据</h1>
+      <h2>输入股票代码</h2>
+      <div>
+        <Autocomplete
+          options={stockData}
+          getOptionLabel={(option) => `${option.code} - ${option.name}`}
+          inputValue={inputValue}
+          onInputChange={(event, newInputValue) => {
+            setInputValue(newInputValue);
+          }}
+          onChange={(event, newValue) => {
+            if (newValue) {
+              setStockCode(newValue.code);
+            }
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="股票代码"
+              value={stockCode}
+              onChange={(e) => setStockCode(e.target.value)}
+              sx={{ mb: 2, width: '400px' }} // 添加一些间距
+            />
+          )}
+        />
+      </div>
+      <h2>选择股票数据时间范围</h2>
+      <Button
+        variant="contained"
+        endIcon={<img src={DateIcon} alt="add" style={{ width: '24px', height: '24px' }} />}
+        onClick={handleTenYearData}
+        sx={{ mb: 4 }}
+      >
+        设置十年日期
+      </Button>
+      <TextField
+        label="起始日期"
+        type="date"
+        value={startDate}
+        onChange={(e) => setStartDate(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+      <TextField
+        type="date"
+        label="结束日期"
+        value={endDate}
+        onChange={(e) => setEndDate(e.target.value)}
+        sx={{ mb: 2 }}
+      />
+      <Button
+        variant="contained"
+        endIcon={<img src={AddIcon} alt="date" style={{ width: '24px', height: '24px' }} />}
+        onClick={handleGetStockData}
+        sx={{ mt: 2 }}
+      >
+        添加为自选股
+      </Button>
     </Box>
   );
 }

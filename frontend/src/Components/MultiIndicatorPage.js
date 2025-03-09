@@ -1192,47 +1192,7 @@ const processStockCode = (code) => {
         />
       </Box>
     )}
-    <h2>指标对比</h2>
-        <Box sx={{ mt: 4 }}>
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handleCompareStrategies}
-            disabled={isComparing}
-          >
-            {isComparing ? '计算中...' : '开始策略对比'}
-          </Button>
 
-          {comparisonResults.length > 0 && (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>策略名称</TableCell>
-                    <TableCell align="right">年化收益率</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {comparisonResults.map((result, index) => (
-                    <TableRow
-                      key={index}
-                      sx={{
-                        backgroundColor: result.isBest ? '#e8f5e9' : 'inherit',
-                        '&:hover': { backgroundColor: '#f5f5f5' } // 修复后的行
-                      }}
-                    >
-                      <TableCell>{result.label}</TableCell>
-                      <TableCell align="right">
-                        {result.returnRate}%
-                        {result.isBest && ' 🏆'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </Box>
 
     <h2>买卖操作</h2>
     {/* 添加表格显示买入卖出点 */}
