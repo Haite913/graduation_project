@@ -317,5 +317,25 @@ def get_stock_price():
     # 返回 JSON 响应
     return jsonify(response_data)
 
+
+@app.route('/deleteCsvFile', methods=['DELETE'])
+def delete_csv_file():
+    filename = request.args.get('filename')
+    current_directory = os.getcwd()
+    current_directory = current_directory + "/stock_data/"
+    if not filename:
+        return jsonify({'error': 'Missing filename'}), 400
+
+    file_path = os.path.join(current_directory, filename)
+
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'message': 'File deleted successfully'})
+        else:
+            return jsonify({'error': 'File not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # 启动一个本地开发服务器，激活该网页
 app.run(host='localhost', port=5000, debug=True)

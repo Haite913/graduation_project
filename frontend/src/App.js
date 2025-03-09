@@ -6,6 +6,8 @@ import { AppProvider, type Navigation } from '@toolpad/core/AppProvider';
 import { DashboardLayout } from '@toolpad/core/DashboardLayout';
 import { useDemoRouter } from '@toolpad/core/internal';
 import '@fontsource/roboto/700.css';
+import SingleIcon from './Components/images/single.png';
+import MultiIcon from './Components/images/multi.png';
 import StockAnalysisPage from './Components/StockAnalysisPage'
 import DemoPageContent from './Components/DemoPageContent'
 import SingleIndicatorPage from './Components/SingleIndicatorPage'
@@ -35,12 +37,12 @@ const NAVIGATION: Navigation = [
   {
     segment: 'single',
     title: '单指标分析',
-    icon: <LayersIcon />,
+    icon: <img src={SingleIcon} alt="date" style={{ width: '24px', height: '24px' }} />
   },
   {
     segment: 'multi',
     title: '多指标分析',
-    icon: <LayersIcon />,
+    icon: <img src={MultiIcon} alt="date" style={{ width: '24px', height: '24px' }} />
   },
 ];
 

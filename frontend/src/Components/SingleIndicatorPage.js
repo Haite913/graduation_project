@@ -274,14 +274,37 @@ function StockAnalysisPage() {
 
     // 新增滑动条变化处理
      const handleSliderChange = (event, newValue) => {
-       setDataRange(newValue);
-     };
+           setDataRange(newValue);
+         };
 
-        // 生成切片后的数据
-     const getSlicedData = (dataArray) => {
-       return dataArray.slice(dataRange[0], dataRange[1] + 1);
-     };
+            // 生成切片后的数据
+         const getSlicedData = (dataArray) => {
+           return dataArray.slice(dataRange[0], dataRange[1] + 1);
+         };
 
+        const handleDeleteStock = async (filename) => {
+      try {
+        // 调用后端接口删除文件
+        const response = await fetch(`http://localhost:5000/deleteCsvFile?filename=${filename}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          // 更新前端文件列表
+          setFiles(prev => prev.filter(file => file !== filename));
+          // 如果删除的是当前选中文件，清空选中状态
+          if (selectedFile1 === filename) {
+            setSelectedFile1('');
+          }
+          alert('删除成功');
+        } else {
+          alert('删除失败');
+        }
+      } catch (error) {
+        console.error('删除失败:', error);
+        alert('删除失败');
+      }
+    };
 
     const handleGetDATA = async () => {
     try {
@@ -700,21 +723,46 @@ const processStockCode = (code) => {
 
                 return (
                   <Paper
-                    key={file}
-                    elevation={0}
-                    sx={{
-                      mb: 1,
-                      p: 1.5,
-                      borderRadius: 1,
-                      transition: 'all 0.2s',
-                      '&:hover': {
-                        backgroundColor: '#f5f5f5'
-                      },
-                      backgroundColor: selectedFile1 === file ? '#e3f2fd' : 'transparent',
-                      border: '1px solid',
-                      borderColor: selectedFile1 === file ? '#2196f3' : 'transparent'
-                    }}
-                  >
+                      key={file}
+                      elevation={0}
+                      sx={{
+                        mb: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        transition: 'all 0.2s',
+                        '&:hover': {
+                          backgroundColor: '#f5f5f5'
+                        },
+                        backgroundColor: selectedFile1 === file ? '#e3f2fd' : 'transparent',
+                        border: '1px solid',
+                        borderColor: selectedFile1 === file ? '#2196f3' : 'transparent',
+                        position: 'relative' // 新增定位
+                      }}
+                    >
+                      <Box sx={{
+                        position: 'absolute',
+                        right: 8,
+                        top: 15,
+                        display: 'flex',
+                        gap: 1
+                      }}>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteStock(file);
+                          }}
+                          sx={{
+                            minWidth: 60,
+                            fontSize: '0.75rem',
+                            padding: '2px 8px',
+                          }}
+                        >
+                          删除
+                        </Button>
+                      </Box>
                     <FormControlLabel
                       value={file}
                       control={<Radio color="primary" />}
@@ -727,15 +775,6 @@ const processStockCode = (code) => {
                             alignItems: 'center'
                           }}>
                             <Typography variant="subtitle1">{stock.name}</Typography>
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                color: 'text.secondary',
-                                fontFamily: 'monospace'
-                              }}
-                            >
-                              {stock.code}
-                            </Typography>
                           </Box>
                         ) : (
                           <Typography
