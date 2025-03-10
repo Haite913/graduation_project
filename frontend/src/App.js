@@ -8,6 +8,7 @@ import { useDemoRouter } from '@toolpad/core/internal';
 import '@fontsource/roboto/700.css';
 import SingleIcon from './Components/images/single.png';
 import MultiIcon from './Components/images/multi.png';
+import DataIcon from './Components/images/data.png';
 import StockAnalysisPage from './Components/StockAnalysisPage'
 import DemoPageContent from './Components/DemoPageContent'
 import SingleIndicatorPage from './Components/SingleIndicatorPage'
@@ -25,7 +26,7 @@ const NAVIGATION: Navigation = [
   {
     segment: 'dashboard',
     title: '股票数据',
-    icon: <DashboardIcon />,
+    icon: <img src={DataIcon} alt="date" style={{ width: '24px', height: '24px' }} />,
   },
   {
     kind: 'divider',

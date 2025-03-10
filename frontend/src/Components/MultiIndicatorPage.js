@@ -21,7 +21,9 @@ import CardContent from '@mui/material/CardContent';
 // 新增导入Slider组件
 import Slider from '@mui/material/Slider';
 import CountIcon from './images/count.png';
-
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import CircularProgress from '@mui/material/CircularProgress';
 
 //股票分析页面
 function StockAnalysisPage() {
@@ -508,161 +510,146 @@ function StockAnalysisPage() {
           }
         };
 
-   const handleBacktest = () => {
-      //判断是否有输入以及是否有收盘价
+      const handleBacktest = () => {
       if (!inputValue || !closePrices.length) return;
-      //初始资金
-      const initialCapital = parseFloat(inputValue);
-      let cash = initialCapital;
-      //持有股票数量
-      let shares = 0;
-      //总交易次数
-      let totalTrades = 0;
-      //盈利的次数
-      let profitableTrades = 0;
-      //净值曲线
-      const equityCurve = [initialCapital];
-      //交易记录
-      const transactions = [];
 
-      // 风险控制配置
-      const positionSizeMap = {10: 0.3, 30: 0.5, 50: 0.7};
-      //记录当前的仓位比例
-      const positionSize = positionSizeMap[risk] || 0.5;
-
-      // 创建时间索引映射
-      //将时间与收盘价索引创造映射
+      // 定义 timeIndexMap
       const timeIndexMap = new Map();
       stockTimes.forEach((time, index) => {
         timeIndexMap.set(time, index);
       });
 
-      // 处理所有交易点
+      const initialCapital = parseFloat(inputValue);
+      let cash = initialCapital;
+      let shares = 0;
+      let totalTrades = 0;
+      let profitableTrades = 0;
+      const equityCurve = [initialCapital];
+      const transactions = [];
+      const positionSizeMap = { 10: 0.3, 30: 0.5, 50: 0.7 };
+      const positionSize = positionSizeMap[risk] || 0.5;
+
+      // 交易成本常量
+      const transactionCost = 5; // 假设每笔交易成本5元
+
+      // 记录买入批次队列（先进先出）
+      let buyBatches = [];
+
+      // 处理交易点（保持排序逻辑不变）
       [...buyPoints, ...sellPoints]
         .sort((a, b) => new Date(a.time) - new Date(b.time))
-        .forEach(point => {
+        .forEach((point) => {
           const index = timeIndexMap.get(point.time);
           if (index === undefined || index >= closePrices.length) return;
-
           const price = closePrices[index];
-          //买入逻辑
-          if (point.type === '买入' && cash > 0) {
-            //计算买入金额
-            const investment = cash * positionSize;
-            //计算买入的股票数量
-            const sharesBought = investment / price;
-            //更新持股数量
+
+          // 买入逻辑
+          if (point.type === "买入" && cash > 0) {
+            const buyCost = cash * positionSize;
+
+            // 检查买入金额是否足够支付手续费
+            if (buyCost <= transactionCost) {
+              console.warn("买入金额不足以支付交易手续费");
+              return;
+            }
+
+            const sharesBought = (buyCost - transactionCost) / price;
+            const totalCost = sharesBought * price + transactionCost;
+
+            cash -= totalCost;
             shares += sharesBought;
-            //更新可用现金
-            cash -= investment;
-            //总交易次数
-            totalTrades++;
+            buyBatches.push({
+              shares: sharesBought,
+              totalCost,
+              originalShares: sharesBought, // 记录原始份额
+              originalCost: totalCost     // 记录原始成本
+            });
 
             transactions.push({
               date: point.time,
-              type: '买入',
+              type: "买入",
               price,
-              amount: investment
+              amount: totalCost,
             });
-
-            // 检查是否胜利
-            const currentValue = cash + (shares * price);
-            if (currentValue > initialCapital) {
-              profitableTrades++;
-            }
-          } else if (point.type === '卖出' && shares > 0) {
-            //获得最近一次买入价格
-            const initialPrice = transactions[transactions.length - 1]?.price || price;
-            //计算盈亏百分比
-            const profitPercentage = ((price - initialPrice) / initialPrice) * 100;
-
-            // 第1批：盈利5%时卖出1/3，止损3%
-            if (profitPercentage >= 5 || profitPercentage <= -3) {
-              const sharesToSell = shares / 3;
-              const value = sharesToSell * price;
-              cash += value;
-              shares -= sharesToSell;
-
-              transactions.push({
-                date: point.time,
-                type: '卖出',
-                price,
-                amount: value
-              });
-
-              totalTrades++;
-
-              // 检查是否胜利
-              const currentValue = cash + (shares * price);
-              if (currentValue > initialCapital) {
-                profitableTrades++;
-              }
-            }
-
-            // 第2批：盈利10%时卖出1/3，止损5%
-            if (profitPercentage >= 10 || profitPercentage <= -5) {
-              const sharesToSell = shares / 3;
-              const value = sharesToSell * price;
-              cash += value;
-              shares -= sharesToSell;
-
-              transactions.push({
-                date: point.time,
-                type: '卖出',
-                price,
-                amount: value
-              });
-
-              totalTrades++;
-
-              // 检查是否胜利
-              const currentValue = cash + (shares * price);
-              if (currentValue > initialCapital) {
-                profitableTrades++;
-              }
-            }
-
-            // 第3批：跟踪止盈（如跌破10日均线卖出），止损8%
-            if (profitPercentage <= -8) {
-              const value = shares * price;
-              cash += value;
-              shares = 0;
-
-              transactions.push({
-                date: point.time,
-                type: '卖出',
-                price,
-                amount: value
-              });
-
-              totalTrades++;
-
-              // 检查是否胜利
-              const currentValue = cash + (shares * price);
-              if (currentValue > initialCapital) {
-                profitableTrades++;
-              }
-            }
           }
 
-          // 更新净值
-          equityCurve.push(cash + (shares * price));
+          // 卖出逻辑
+          else if (point.type === "卖出" && shares > 0) {
+            // 按当前总市值的百分比卖出
+            const currentTotalValue = cash + shares * price;
+            const targetValue = currentTotalValue * positionSize;
+            const targetShares = Math.min(shares, (targetValue - transactionCost) / price);
+
+            // 检查卖出金额是否足够支付手续费
+            if (targetShares * price <= transactionCost) {
+              console.warn("卖出金额不足以支付交易手续费");
+              return;
+            }
+
+            let sharesSold = 0;
+            let costBasis = 0;
+
+            // 遍历买入批次计算成本
+            while (sharesSold < targetShares && buyBatches.length > 0) {
+              const batch = buyBatches[0];
+              const sellAmount = Math.min(batch.shares, targetShares - sharesSold);
+
+              // 按比例计算成本
+              costBasis += (sellAmount / batch.originalShares) * batch.originalCost;
+              sharesSold += sellAmount;
+
+              // 更新批次
+              if (batch.shares === sellAmount) {
+                buyBatches.shift();
+              } else {
+                batch.shares -= sellAmount;
+                batch.totalCost -= (sellAmount / batch.originalShares) * batch.originalCost;
+              }
+            }
+
+            // 计算实际卖出金额
+            const sellValue = sharesSold * price - transactionCost;
+            const isWin = sellValue > costBasis;
+
+            // 更新统计
+            if (isWin) profitableTrades++;
+            totalTrades++; // 仅在卖出时统计交易次数
+            cash += sellValue;
+            shares -= sharesSold;
+
+            transactions.push({
+              date: point.time,
+              type: "卖出",
+              price,
+              amount: sellValue,
+            });
+          }
+
+          equityCurve.push(cash + shares * price);
         });
 
-      // 计算收益率
-      const totalReturn = cash + (shares * closePrices[closePrices.length - 1]) - initialCapital;
-      const durationYears = (new Date(stockTimes[stockTimes.length - 1]) - new Date(stockTimes[0])) / (1000 * 3600 * 24 * 365);
-      const annualizedReturn = durationYears > 0 ? (Math.pow((totalReturn + initialCapital) / initialCapital, 1 / durationYears) - 1) * 100 : 0;
+      // 计算总收益
+      const totalReturn = cash + shares * closePrices[closePrices.length - 1] - initialCapital;
+
+      // 计算年化收益率
+      const durationYears =
+        (new Date(stockTimes[stockTimes.length - 1]) - new Date(stockTimes[0])) /
+        (1000 * 3600 * 24 * 365);
+      const annualizedReturn =
+        durationYears > 0
+          ? ((Math.pow((totalReturn + initialCapital) / initialCapital, 1 / durationYears) - 1) )* 100
+          : 0;
 
       // 计算胜率
-      const winRate = totalTrades >= 0 ? ((profitableTrades / totalTrades) * 100).toFixed(2) : 0;
+      const winRate = totalTrades > 0 ? ((profitableTrades / totalTrades) * 100).toFixed(2) : 0;
 
+      // 设置回测结果
       setBacktestResult({
         totalReturn,
         annualizedReturn: annualizedReturn.toFixed(2),
         winRate,
         transactions,
-        equityCurve
+        equityCurve,
       });
     };
 
@@ -1008,32 +995,95 @@ const processStockCode = (code) => {
 
     <h2>根据多指标共振买卖操作</h2>
     {/* 添加表格显示买入卖出点 */}
-    <TableContainer component={Paper} sx={{ mt: 4 }}>
-      <Table sx={{ minWidth: 650 }} size="small" aria-label="a dense table">
-        <TableHead>
-          <TableRow>
-            <TableCell>时间</TableCell>
-            <TableCell align="right">操作类型</TableCell>
+{/* 优化后的交易点表格 */}
+<TableContainer
+  component={Paper}
+  sx={{
+    mt: 4,
+    borderRadius: 2,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+    overflow: 'hidden'
+  }}
+>
+  <Table aria-label="交易点表格">
+    <TableHead>
+      <TableRow sx={{
+        backgroundColor: (theme) => theme.palette.primary.main,
+        '& th': {
+          color: '#fff',
+          fontSize: '0.95rem',
+          fontWeight: 500
+        }
+      }}>
+        <TableCell align="center" sx={{ width: '15%' }}>序号</TableCell>
+        <TableCell align="center" sx={{ width: '35%' }}>交易时间</TableCell>
+        <TableCell align="center" sx={{ width: '30%' }}>操作类型</TableCell>
+        <TableCell align="center" sx={{ width: '20%' }}>信号强度</TableCell>
+      </TableRow>
+    </TableHead>
+    <TableBody>
+      {[...buyPoints, ...sellPoints]
+        .sort((a, b) => new Date(a.time) - new Date(b.time))
+        .map((point, index) => (
+          <TableRow
+            key={index}
+            hover
+            sx={{
+              '&:nth-of-type(even)': { backgroundColor: '#f8f9fa' },
+              '&:last-child td': { border: 0 }
+            }}
+          >
+            <TableCell align="center" sx={{ color: 'text.secondary' }}>
+              {index + 1}
+            </TableCell>
+            <TableCell align="center" sx={{ fontWeight: 500 }}>
+              {point.time}
+            </TableCell>
+            <TableCell align="center">
+              <Box
+                sx={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 1,
+                  backgroundColor: point.type === '买入' ?
+                    'rgba(76, 175, 80, 0.1)' :
+                    'rgba(244, 67, 54, 0.1)',
+                  color: point.type === '买入' ?
+                    (theme) => theme.palette.success.main :
+                    (theme) => theme.palette.error.main
+                }}
+              >
+                {point.type === '买入' ? (
+                  <TrendingUpIcon fontSize="small" sx={{ mr: 0.5 }} />
+                ) : (
+                  <TrendingDownIcon fontSize="small" sx={{ mr: 0.5 }} />
+                )}
+                <Typography variant="body2" fontWeight="500">
+                  {point.type}
+                </Typography>
+              </Box>
+            </TableCell>
+            <TableCell align="center">
+              <CircularProgress
+                variant="determinate"
+                value={Math.random() * 100} // 实际使用时替换为真实数据
+                size={28}
+                thickness={4}
+                sx={{
+                  color: (theme) =>
+                    point.type === '买入' ?
+                    theme.palette.success.main :
+                    theme.palette.error.main
+                }}
+              />
+            </TableCell>
           </TableRow>
-        </TableHead>
-        <TableBody>
-          {/* 合并 buyPoints 和 sellPoints，并按时间排序 */}
-          {buyPoints.concat(sellPoints)
-            .sort((a, b) => new Date(a.time) - new Date(b.time)) // 按时间排序
-            .map((point, index) => (
-            <TableRow
-              key={index}
-              sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-            >
-              <TableCell component="th" scope="row">
-                {point.time}
-              </TableCell>
-              <TableCell align="right">{point.type}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
+        ))}
+    </TableBody>
+  </Table>
+</TableContainer>
 
     <h2>策略回测</h2>
         <div>
