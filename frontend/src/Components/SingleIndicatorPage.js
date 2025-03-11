@@ -333,21 +333,21 @@ function StockAnalysisPage() {
 
       try {
         // 获取 MACD 数据
-        let macdUrl = `http://localhost:5000/getDataMACD?selectedFile=${selectedFile1}`;
+        let macdUrl = `http://localhost:5000/getDataMACD?selectedFile=${selectedFile1}&fast=12&slow=26&signal=9`;
         let macdResponse = await fetch(macdUrl);
         let macdRawData = await macdResponse.text();
         let macdData = JSON.parse(macdRawData.replace(/NaN/g, 'null'));
         setMACDS1(macdData);
 
         // 获取 KDJ 数据
-        let kdjUrl = `http://localhost:5000/getDataKDJ?selectedFile=${selectedFile1}`;
+        let kdjUrl = `http://localhost:5000/getDataKDJ?selectedFile=${selectedFile1}&period=14`;
         let kdjResponse = await fetch(kdjUrl);
         let kdjRawData = await kdjResponse.text();
         let kdjData = JSON.parse(kdjRawData.replace(/NaN/g, 'null'));
         setKDJS1(kdjData);
 
         // 获取 RSI 数据
-        let rsiUrl = `http://localhost:5000/getDataRSI?selectedFile=${selectedFile1}`;
+        let rsiUrl = `http://localhost:5000/getDataRSI?selectedFile=${selectedFile1}&period=14`;
         let rsiResponse = await fetch(rsiUrl);
         let rsiRawData = await rsiResponse.text();
         let rsiData = JSON.parse(rsiRawData.replace(/NaN/g, 'null'));
@@ -355,7 +355,7 @@ function StockAnalysisPage() {
 
 
         // 获取 CCI 数据
-        let cciUrl = `http://localhost:5000/getDataCCI?selectedFile=${selectedFile1}`;
+        let cciUrl = `http://localhost:5000/getDataCCI?selectedFile=${selectedFile1}&period=14`;
         let cciResponse = await fetch(cciUrl);
         let cciRawData = await cciResponse.text();
         let cciData = JSON.parse(cciRawData.replace(/NaN/g, 'null'));

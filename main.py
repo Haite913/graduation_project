@@ -176,6 +176,9 @@ def getDataMACD():
     current_directory = current_directory+"/stock_data/"
     # 从 CSV 文件中读取数据
     selectedFile = request.args.get('selectedFile', default=None, type=str)
+    fast = request.args.get('fast', default=None, type=int)
+    slow = request.args.get('slow', default=None, type=int)
+    signal = request.args.get('signal', default=None, type=int)
     file_path = current_directory+selectedFile
     df = pandas.read_csv(file_path)
 
@@ -184,7 +187,7 @@ def getDataMACD():
 
     # 计算 MACD
     close_series = df['收盘价']  # 确保删除任何 NaN 值
-    dif, dea, macd = MACD(close_series)
+    dif, dea, macd = MACD(close_series,fast,slow,signal)
 
     # 将 NaN 值替换为 None
     dif = [0 if pandas.isna(x) or x != x else x for x in dif]  # x != x 是检查 NaN 的一种方式
@@ -209,6 +212,7 @@ def getDataKDJ():
     current_directory = current_directory + "/stock_data/"
     # 从 CSV 文件中读取数据
     selectedFile = request.args.get('selectedFile', default=None, type=str)
+    period = request.args.get('period', default=None, type=int)
     file_path = current_directory + selectedFile
     df = pandas.read_csv(file_path)
 
@@ -218,7 +222,7 @@ def getDataKDJ():
     df['最低价'] = pandas.to_numeric(df['最低价'], errors='coerce')
 
     # 计算 KDJ
-    k, d, j = KDJ(df)
+    k, d, j = KDJ(df,period)
 
     # 将 NaN 值替换为 None
     k = [None if pandas.isna(x) else x for x in k]
@@ -249,8 +253,10 @@ def getDataRSI():
     # 确保收盘价是数值类型
     df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
 
+    period = request.args.get('period', default=None, type=int)
+
     # 计算 RSI
-    rsi = RSI(df, period=14)  # 默认周期为14
+    rsi = RSI(df, period)  # 默认周期为14
 
     # 将 NaN 值替换为 None
     rsi = [None if pandas.isna(x) else x for x in rsi]
@@ -271,6 +277,7 @@ def getDataCCI():
     current_directory = current_directory + "/stock_data/"
     # 从 CSV 文件中读取数据
     selectedFile = request.args.get('selectedFile', default=None, type=str)
+    period = request.args.get('period', default=None, type=int)
     file_path = current_directory + selectedFile
     df = pandas.read_csv(file_path)
 
@@ -280,7 +287,7 @@ def getDataCCI():
     df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
 
     # 计算 CCI
-    cci = CCI(df, period=14)  # 默认周期为 20
+    cci = CCI(df, period)  # 默认周期为 20
 
     # 将 NaN 值替换为 None
     cci = [None if pandas.isna(x) else x for x in cci]

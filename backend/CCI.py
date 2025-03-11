@@ -3,7 +3,7 @@ import numpy as np
 
 # CCI 计算函数
 # CCI 计算函数
-def CCI(df, period=14):
+def CCI(df, period):
     """
     计算商品通道指数（CCI）
     :param df: 包含价格数据的 DataFrame，需包含'最高价', '最低价', '收盘价'

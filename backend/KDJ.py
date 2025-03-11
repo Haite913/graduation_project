@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 #MACD计算公式
-def KDJ(df, n=9):
+def KDJ(df, n):
     """
     计算KDJ指标
     :param df: 包含股票数据的DataFrame，必须包含'收盘'、'最高'、'最低'列
