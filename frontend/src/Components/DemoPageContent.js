@@ -125,8 +125,17 @@ function DemoPageContent({ pathname }) {
       }}
     >
       <h1>获取股票数据</h1>
-      <h2>输入股票代码</h2>
-      <div>
+
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        mb: 2,
+        width: '100%',
+        maxWidth: 600,
+        justifyContent: 'center'
+      }}>
+        <h2 style={{ margin: 0, whiteSpace: 'nowrap' }}>输入股票代码</h2>
         <Autocomplete
           options={stockData}
           getOptionLabel={(option) => `${option.code} - ${option.name}`}
@@ -145,42 +154,49 @@ function DemoPageContent({ pathname }) {
               label="股票代码"
               value={stockCode}
               onChange={(e) => setStockCode(e.target.value)}
-              sx={{ mb: 2, width: '400px' }} // 添加一些间距
+              sx={{ flex: 1 }}
             />
           )}
+          sx={{ flex: 1 }}
         />
-      </div>
-      <h2>选择股票数据时间范围</h2>
-      <Button
-        variant="contained"
-        endIcon={<img src={DateIcon} alt="add" style={{ width: '24px', height: '24px' }} />}
-        onClick={handleTenYearData}
-        sx={{ mb: 4 }}
-      >
-        设置十年日期
-      </Button>
+      </Box>
+     <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' ,padding:'30px'}}>
+     <h2>选择时间范围</h2>
       <TextField
         label="起始日期"
         type="date"
         value={startDate}
         onChange={(e) => setStartDate(e.target.value)}
-        sx={{ mb: 2 }}
+        InputLabelProps={{
+          shrink: true,
+        }}
       />
       <TextField
         type="date"
         label="结束日期"
         value={endDate}
         onChange={(e) => setEndDate(e.target.value)}
-        sx={{ mb: 2 }}
+        InputLabelProps={{
+          shrink: true,
+        }}
       />
+    </div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap',padding:'30px' }}>
+       <Button
+        variant="contained"
+        endIcon={<img src={DateIcon} alt="add" style={{ width: '24px', height: '24px' }} />}
+        onClick={handleTenYearData}
+      >
+        设置十年日期
+      </Button>
       <Button
         variant="contained"
         endIcon={<img src={AddIcon} alt="date" style={{ width: '24px', height: '24px' }} />}
         onClick={handleGetStockData}
-        sx={{ mt: 2 }}
       >
         添加为自选股
       </Button>
+    </div>
     </Box>
   );
 }

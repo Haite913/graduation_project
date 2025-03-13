@@ -831,14 +831,27 @@ const processStockCode = (code) => {
         </FormControl>
 
     </FormControl>
-     <Button
-       variant="contained"
-       endIcon={<img src={CountIcon} alt="date" style={{ width: '24px', height: '24px' }} />}
-       onClick={handleGetDATA}
-       sx={{ mt: 4 }}
-     >
-       计算股票指标
-     </Button>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center', // 水平居中
+        mt: 4, // 上边距
+      }}
+    >
+      <Button
+        variant="contained"
+        size="small" // 设置按钮为小尺寸
+        endIcon={<img src={CountIcon} alt="date" style={{ width: '24px', height: '24px' }} />}
+        onClick={handleGetDATA}
+        sx={{
+          width: '200px', // 自定义宽度
+          height: '40px', // 自定义高度
+          fontSize: '0.875rem', // 调整字体大小
+        }}
+      >
+        计算股票指标
+      </Button>
+    </Box>
     <h2>指标图像</h2>
      {/* 条件渲染指标选择 */}
      {showIndicator && (

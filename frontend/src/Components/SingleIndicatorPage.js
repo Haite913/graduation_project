@@ -3,21 +3,16 @@ import Button from '@mui/material/Button';
 import '@fontsource/roboto/700.css';
 import { useState,useEffect  } from 'react';
 import Radio from '@mui/material/Radio';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
 import Grid from '@mui/material/Grid';
 import { LineChart } from '@mui/x-charts/LineChart';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
 import Typography from '@mui/material/Typography';
-import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 // 新增导入Slider组件
 import Slider from '@mui/material/Slider';
 import CountIcon from './images/count.png';
@@ -222,17 +217,11 @@ function StockAnalysisPage() {
     TIME: [null], // 或者 [null]
   });
 
-  const [buyPoints, setBuyPoints] = useState([]); // 买入点时间
-  const [sellPoints, setSellPoints] = useState([]); // 卖出点时间
   const [selectedFile1, setSelectedFile1] = useState(files[0]);
   const [selectedValue1, setSelectedValue1] = useState('');
   const [closePrices, setClosePrices] = useState([]); // 收盘价数据
   const [stockTimes, setStockTimes] = useState([]);    // 时间数据
-  const [backtestResult, setBacktestResult] = useState({
-    totalReturn: 0,          // 总收益
-    annualizedReturn: 0,     // 年化收益率
-    winRate: 0,              // 胜率
-  });
+
 
   // 处理 RadioGroup 变化的函数
   const handleRadioChange1 = (event) => {
@@ -366,29 +355,8 @@ function StockAnalysisPage() {
         setMaxDataLength(dataLength);
         setDataRange([Math.max(0, dataLength - 100), dataLength - 1]);
 
-        // 计算买入和卖出点
-        const buyPoints1 = [];
-        const sellPoints1 = [];
-        for (let i = 1; i < macdData.DIF.length; i++) {
-            const prevDIF = macdData.DIF[i - 1];
-            const currDIF = macdData.DIF[i];
-            const prevDEA = macdData.DEA[i - 1];
-            const currDEA = macdData.DEA[i];
+        setSelectedValue1("MACD");
 
-            // 获取KDJ前值和当前值
-            const prevK = kdjData.K[i - 1];
-            const currK = kdjData.K[i];
-            const prevD = kdjData.D[i - 1];
-            const currD = kdjData.D[i];
-
-            // 获取当前时刻的RSI、CCI值
-            const currRSI = rsiData.RSI[i];
-            const currCCI = cciData.CCI[i];
-
-        }
-
-        console.log(buyPoints);
-        console.log(sellPoints);
 
       } catch (error) {
         console.error('请求失败:', error);
@@ -639,12 +607,16 @@ function StockAnalysisPage() {
           }
 
           // 运行回测
-          const result = await runBacktest(
-            buyPoints,
-            sellPoints,
-            closePrices,
-            stockTimes,
-          );
+            // 修改策略对比部分的回测调用
+            const result = await runBacktest(
+              buyPoints,
+              sellPoints,
+              closePrices,
+              stockTimes,
+              100000,  // 添加初始资金（示例值）
+              30       // 添加风险等级（示例值）
+            );
+
 
           results.push({
             label: config.label,
@@ -695,7 +667,7 @@ const processStockCode = (code) => {
     <box style={{ padding:"10px 20px",display:"flex",flexDirection:"column"}}>
     <FormControl>
       <h1>股票分析</h1>
-            <FormLabel id="demo-row-radio-buttons-group-label" style={{ padding:"20px 0px"}}>自选股列表</FormLabel>
+       <h2>自选股列表</h2>
         <FormControl fullWidth>
           <Paper
             variant="outlined"
@@ -804,27 +776,38 @@ const processStockCode = (code) => {
         </FormControl>
 
     </FormControl>
-     <Button
-       variant="contained"
-       endIcon={<img src={CountIcon} alt="date" style={{ width: '24px', height: '24px' }} />}
-       onClick={handleGetDATA}
-       sx={{ mt: 4 }}
-     >
-       计算股票指标
-     </Button>
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center', // 水平居中
+        mt: 4, // 上边距
+      }}
+    >
+      <Button
+        variant="contained"
+        size="small" // 设置按钮为小尺寸
+        endIcon={<img src={CountIcon} alt="date" style={{ width: '24px', height: '24px' }} />}
+        onClick={handleGetDATA}
+        sx={{
+          width: '200px', // 自定义宽度
+          height: '40px', // 自定义高度
+          fontSize: '0.875rem', // 调整字体大小
+        }}
+      >
+        计算股票指标
+      </Button>
+    </Box>
     <h2>指标图像</h2>
      {/* 条件渲染指标选择 */}
      {showIndicator && (
        <>
-         <FormLabel id="demo-row-radio-buttons-group-label" style={{ padding: "10px 0px 10px 0px" }}>
-           指标
-         </FormLabel>
          <RadioGroup
            row
            aria-labelledby="demo-row-radio-buttons-group-label"
            name="row-radio-buttons-group"
            onChange={handleRadioChange1}
            value={selectedValue1}
+           sx={{ width: '100%', ml: '3%' }}
          >
            <FormControlLabel value="MACD" control={<Radio />} label="MACD" />
            <FormControlLabel value="KDJ" control={<Radio />} label="KDJ" />
@@ -835,8 +818,7 @@ const processStockCode = (code) => {
      )}
 
     {selectedValue1 && (
-  <Box sx={{ width: '100%', mt: 0 }}>
-    <Typography gutterBottom>数据范围选择</Typography>
+  <Box sx={{ width: '100%', ml: '3%' }}>
     <Slider
       value={dataRange}
       onChange={handleSliderChange}
@@ -1039,7 +1021,7 @@ const processStockCode = (code) => {
                     >
                       <TableCell>{result.label}</TableCell>
                       <TableCell align="right">
-                        {result.returnRate}%
+                        {result.returnRate.toFixed(2)}%
                         {result.isBest && ' 🏆'}
                       </TableCell>
                     </TableRow>
