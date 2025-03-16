@@ -408,7 +408,7 @@ function StockAnalysisPage() {
     };
 
     // 计算最优参数的买入卖出点
-const calculateBestPoints = (bestParams) => {
+    const calculateBestPoints = (bestParams) => {
   const bestBuyPoints = [];
   const bestSellPoints = [];
 
@@ -445,49 +445,45 @@ const calculateBestPoints = (bestParams) => {
     // CCI指标
     const currCCI = cciData.CCI[i];
 
-    // 买入条件（需要至少三个指标共振）
-    const buyCondition1 = prevDIF < prevDEA && currDIF > currDEA; // MACD金叉
-    const buyCondition2 = prevK < prevD && currK >= currD; // KDJ金叉
-    const buyCondition3 = currRSI < 30; // RSI超卖
-    const buyCondition4 = currCCI > 100; // CCI突破
+    // 买入条件（三个必须同时满足）
+    const isBuyMACD = prevDIF < prevDEA && currDIF > currDEA; // MACD金叉
+    const isBuyKDJ = prevK < prevD && currK >= currD; // KDJ金叉
+    const isBuyCCI_RSI = currCCI > 100 || currRSI < 30; // CCI或RSI满足其一
 
-    if ([buyCondition1, buyCondition2, buyCondition3, buyCondition4]
-      .filter(Boolean).length >= 3) {
+    if (isBuyMACD && isBuyKDJ && isBuyCCI_RSI) {
+      const indicators = ['MACD金叉', 'KDJ金叉'];
+      if (currCCI > 100) indicators.push('CCI突破');
+      if (currRSI < 30) indicators.push('RSI超卖');
+
       bestBuyPoints.push({
         time: macdData.TIME[i],
         type: '买入',
-        indicators: [
-          buyCondition1 && 'MACD金叉',
-          buyCondition2 && 'KDJ金叉',
-          buyCondition3 && 'RSI超卖',
-          buyCondition4 && 'CCI突破'
-        ].filter(Boolean)
+        indicators: indicators
       });
     }
+    // 卖出条件（三个必须同时满足）
+    else {
+      const isSellMACD = prevDIF > prevDEA && currDIF < currDEA; // MACD死叉
+      const isSellKDJ = prevK > prevD && currK <= currD; // KDJ死叉
+      const isSellCCI_RSI = currCCI < -100 || currRSI > 70; // CCI或RSI满足其一
 
-    // 卖出条件（需要至少三个指标共振）
-    const sellCondition1 = prevDIF > prevDEA && currDIF < currDEA; // MACD死叉
-    const sellCondition2 = prevK > prevD && currK <= currD; // KDJ死叉
-    const sellCondition3 = currRSI > 70; // RSI超买
-    const sellCondition4 = currCCI < -100; // CCI跌破
+      if (isSellMACD && isSellKDJ && isSellCCI_RSI) {
+        const indicators = ['MACD死叉', 'KDJ死叉'];
+        if (currCCI < -100) indicators.push('CCI跌破');
+        if (currRSI > 70) indicators.push('RSI超买');
 
-    if ([sellCondition1, sellCondition2, sellCondition3, sellCondition4]
-      .filter(Boolean).length >= 3) {
-      bestSellPoints.push({
-        time: macdData.TIME[i],
-        type: '卖出',
-        indicators: [
-          sellCondition1 && 'MACD死叉',
-          sellCondition2 && 'KDJ死叉',
-          sellCondition3 && 'RSI超买',
-          sellCondition4 && 'CCI跌破'
-        ].filter(Boolean)
-      });
+        bestSellPoints.push({
+          time: macdData.TIME[i],
+          type: '卖出',
+          indicators: indicators
+        });
+      }
     }
   }
 
   return { bestBuyPoints, bestSellPoints };
 };
+
 
   // 处理 RadioGroup 变化的函数
   const handleRadioChange1 = (event) => {
