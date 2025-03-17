@@ -1,8 +1,10 @@
 import * as React from 'react';
-import Box from '@mui/material/Box';
-import TextField from '@mui/material/TextField';
-import Autocomplete from '@mui/material/Autocomplete';
-import Button from '@mui/material/Button';
+import {
+  Box,
+  TextField,
+  Autocomplete,
+  Button,
+} from '@mui/material';
 import AddIcon from './images/add.png';
 import DateIcon from './images/date.png';
 import '@fontsource/roboto/700.css';
@@ -77,9 +79,9 @@ const stockData = [
 
 function DemoPageContent({ pathname }) {
   const [stockCode, setStockCode] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
-  const [inputValue, setInputValue] = useState('');
 
   // 计算十年前的日期
   const getTenYearsAgoDate = () => {

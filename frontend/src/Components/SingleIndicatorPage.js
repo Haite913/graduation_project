@@ -1,38 +1,24 @@
 import * as React from 'react';
 import Button from '@mui/material/Button';
-import '@fontsource/roboto/700.css';
-import { useState,useEffect  } from 'react';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControl from '@mui/material/FormControl';
 import FormLabel from '@mui/material/FormLabel';
 import Box from '@mui/material/Box';
+import { useState,useEffect  } from 'react';
 import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
 import Grid from '@mui/material/Grid';
-import { LineChart } from '@mui/x-charts/LineChart';
-import { BarChart } from '@mui/x-charts/BarChart';
-import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
 import Typography from '@mui/material/Typography';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-// 新增导入Slider组件
 import Slider from '@mui/material/Slider';
+import { TableContainer, Table, TableHead, TableBody, TableRow, TableCell, Paper } from '@mui/material';
+import { LineChart } from '@mui/x-charts/LineChart';
+import { BarChart } from '@mui/x-charts/BarChart';
 import CountIcon from './images/count.png';
+import '@fontsource/roboto/700.css';
 
-
-//股票分析页面
-function StockAnalysisPage() {
-    const [showIndicator, setShowIndicator] = useState(false);
-    const [files, setFiles] = useState([]);
-
-    // 在组件顶部添加以下状态变量
-    const [comparisonResults, setComparisonResults] = useState([]);
-    const [isComparing, setIsComparing] = useState(false);
-
-    // 新增状态管理数据范围
-    const [dataRange, setDataRange] = useState([0, 100]);
-    const [maxDataLength, setMaxDataLength] = useState(100);
-    const stockData = [
+const stockData = [
       { code: 'SH:000300', name: '沪深300' },
       { code: 'SH:600519', name: '贵州茅台' },
       { code: 'SH:688256', name: '寒武纪' },
@@ -103,8 +89,8 @@ function StockAnalysisPage() {
       { code: '.IXIC', name: '纳斯达克综合指数' },
     ];
 
-      // 配置需要对比的指标参数
-    const comparisonConfigs = [
+// 配置需要对比的指标参数
+const comparisonConfigs = [
       // MACD配置
       {
         label: 'MACD短线(9,19,6)',
@@ -198,47 +184,44 @@ function StockAnalysisPage() {
       }
     ];
 
-  const [MACDS1, setMACDS1] = useState({
-    DIF: [null],  // 或者 [null]
-    DEA: [null],  // 或者 [null]
-    MACD: [null], // 或者 [null]
-    TIME: [null], // 或者 [null]
+//股票分析页面
+function StockAnalysisPage() {
+    const [showIndicator, setShowIndicator] = useState(false);
+    const [files, setFiles] = useState([]);
+    // 在组件顶部添加以下状态变量
+    const [comparisonResults, setComparisonResults] = useState([]);
+    const [isComparing, setIsComparing] = useState(false);
+    // 新增状态管理数据范围
+    const [dataRange, setDataRange] = useState([0, 100]);
+    const [maxDataLength, setMaxDataLength] = useState(100);
+    const [risk, setRisk] = useState([10]); // 风险
+    const [selectedFile1, setSelectedFile1] = useState(files[0]);
+    const [selectedValue1, setSelectedValue1] = useState('');
+    const [closePrices, setClosePrices] = useState([]); // 收盘价数据
+    const [stockTimes, setStockTimes] = useState([]);    // 时间数据
+
+    const [MACDS1, setMACDS1] = useState({
+      DIF: [null],  // 或者 [null]
+      DEA: [null],  // 或者 [null]
+      MACD: [null], // 或者 [null]
+      TIME: [null], // 或者 [null]
+      });
+    const [KDJS1, setKDJS1] = useState({
+      K: [null],  // 或者 [null]
+      D: [null],  // 或者 [null]
+      J: [null], // 或者 [null]
+      TIME: [null], // 或者 [null]
     });
-  const [KDJS1, setKDJS1] = useState({
-    K: [null],  // 或者 [null]
-    D: [null],  // 或者 [null]
-    J: [null], // 或者 [null]
-    TIME: [null], // 或者 [null]
-  });
-  const [RSIS1, setRSIS1] = useState({
-    RSI: [null],  // 或者 [null]
-    TIME: [null], // 或者 [null]
-  });
-  const [CCIS1, setCCIS1] = useState({
-    CCI: [null],  // 或者 [null]
-    TIME: [null], // 或者 [null]
-  });
+    const [RSIS1, setRSIS1] = useState({
+      RSI: [null],  // 或者 [null]
+      TIME: [null], // 或者 [null]
+    });
+    const [CCIS1, setCCIS1] = useState({
+      CCI: [null],  // 或者 [null]
+      TIME: [null], // 或者 [null]
+    });
 
-  const [risk, setRisk] = useState([10]); // 风险
-  const [selectedFile1, setSelectedFile1] = useState(files[0]);
-  const [selectedValue1, setSelectedValue1] = useState('');
-  const [closePrices, setClosePrices] = useState([]); // 收盘价数据
-  const [stockTimes, setStockTimes] = useState([]);    // 时间数据
-
-   // 处理 Select 值的变化
-    const handleRiskChange = (event) => {
-      setRisk(event.target.value);
-    };
-
-  // 处理 RadioGroup 变化的函数
-  const handleRadioChange1 = (event) => {
-    // 更新状态变量为选中的值
-    setSelectedValue1(event.target.value);
-  };
-
-
-
-  const handleGetCsvFiles = async () => {
+    const handleGetCsvFiles = async () => {
   try {
       // 构建请求的 URL 或请求体，这里假设是 GET 请求
       const url = 'http://localhost:5000/getCsvFile';
@@ -256,38 +239,22 @@ function StockAnalysisPage() {
     }
   };
 
-        // 修改后的handleFileChange1函数
-    const handleFileChange1 = (value) => {  // 直接接收value参数
-        const newSelectedFile1 = value;     // 不再需要event.target.value
+    // 前端股票代码处理函数（需与Python版process_stock_code逻辑一致）
+    const processStockCode = (code) => {
+  // 港股处理 HK:00379 → 00379
+  if (code.startsWith("HK:")) return code.slice(3);
 
-              // 重置所有指标相关状态
-        setMACDS1({ DIF: [null], DEA: [null], MACD: [null], TIME: [null] });
-        setKDJS1({ K: [null], D: [null], J: [null], TIME: [null] });
-        setRSIS1({ RSI: [null], TIME: [null] });
-        setCCIS1({ CCI: [null], TIME: [null] });
+  // 美股处理 NASDAQ:.IXIC → NASDAQ.IXIC
+  if (code.startsWith("NASDAQ:") || code.startsWith("NYSE:") || code.startsWith("AMEX:")) {
+    return code.replace(':', '.'); // 将冒号替换为点
+  }
 
-        // 新增以下状态重置
-        setShowIndicator(false);          // 隐藏指标选择
-        setComparisonResults([]);         // 清空对比结果
-        setClosePrices([]);               // 清空价格数据
-        setStockTimes([]);                // 清空时间数据
-        setDataRange([0, 100]);           // 重置数据范围
-        setMaxDataLength(100);            // 重置最大数据长度
+  // 沪深处理（移除所有冒号）SH::600000 → SH600000
+  return code.replace(/:/g, "");
+};
 
-        setSelectedFile1(newSelectedFile1);
-    };
-
-    // 新增滑动条变化处理
-     const handleSliderChange = (event, newValue) => {
-           setDataRange(newValue);
-         };
-
-            // 生成切片后的数据
-         const getSlicedData = (dataArray) => {
-           return dataArray.slice(dataRange[0], dataRange[1] + 1);
-         };
-
-     const handleDeleteStock = async (filename) => {
+    //删除股票函数
+    const handleDeleteStock = async (filename) => {
       try {
         // 调用后端接口删除文件
         const response = await fetch(`http://localhost:5000/deleteCsvFile?filename=${filename}`, {
@@ -311,7 +278,47 @@ function StockAnalysisPage() {
       }
     };
 
-    const handleGetDATA = async () => {
+
+    // 修改后的handleFileChange1函数
+    const handleFileChange1 = (value) => {  // 直接接收value参数
+        const newSelectedFile1 = value;     // 不再需要event.target.value
+
+              // 重置所有指标相关状态
+        setMACDS1({ DIF: [null], DEA: [null], MACD: [null], TIME: [null] });
+        setKDJS1({ K: [null], D: [null], J: [null], TIME: [null] });
+        setRSIS1({ RSI: [null], TIME: [null] });
+        setCCIS1({ CCI: [null], TIME: [null] });
+
+        // 新增以下状态重置
+        setShowIndicator(false);          // 隐藏指标选择
+        setComparisonResults([]);         // 清空对比结果
+        setClosePrices([]);               // 清空价格数据
+        setStockTimes([]);                // 清空时间数据
+        setDataRange([0, 100]);           // 重置数据范围
+        setMaxDataLength(100);            // 重置最大数据长度
+
+        setSelectedFile1(newSelectedFile1);
+    };
+
+    // 处理 RadioGroup 变化的函数
+    const handleRadioChange1 = (event) => {
+      // 更新状态变量为选中的值
+      setSelectedValue1(event.target.value);
+    };
+
+
+    // 新增滑动条变化处理
+    const handleSliderChange = (event, newValue) => {
+           setDataRange(newValue);
+         };
+
+     // 生成切片后的数据
+     const getSlicedData = (dataArray) => {
+       return dataArray.slice(dataRange[0], dataRange[1] + 1);
+     };
+
+     //获取股票数据
+     const handleGetDATA = async () => {
     try {
         // 获取价格数据
         const priceUrl = `http://localhost:5000/getStockPrice?selectedFile=${selectedFile1}`;
@@ -379,7 +386,8 @@ function StockAnalysisPage() {
       }
     };
 
-      const runBacktest = async (buyPoints, sellPoints, closePrices, stockTimes, initialCapital, riskLevel) => {
+     //回测函数
+     const runBacktest = async (buyPoints, sellPoints, closePrices, stockTimes, initialCapital, riskLevel) => {
         console.log('Initial Capital:', initialCapital);
         console.log('Buy Points:', buyPoints);
         console.log('Sell Points:', sellPoints);
@@ -526,8 +534,8 @@ function StockAnalysisPage() {
       };
     };
 
-    // 添加对比处理函数
-    const handleCompareStrategies = async () => {
+     // 首先计算各个指标的买入卖出时间点,并根据买入卖出时间点进行回测,最后选出最佳策略及参数
+     const handleCompareStrategies = async () => {
       setIsComparing(true);
 
       const results = [];
@@ -658,23 +666,14 @@ function StockAnalysisPage() {
     };
 
 
-    // 前端股票代码处理函数（需与Python版process_stock_code逻辑一致）
-const processStockCode = (code) => {
-  // 港股处理 HK:00379 → 00379
-  if (code.startsWith("HK:")) return code.slice(3);
+     // 处理 Select 值的变化
+     const handleRiskChange = (event) => {
+        setRisk(event.target.value);
+     };
 
-  // 美股处理 NASDAQ:.IXIC → NASDAQ.IXIC
-  if (code.startsWith("NASDAQ:") || code.startsWith("NYSE:") || code.startsWith("AMEX:")) {
-    return code.replace(':', '.'); // 将冒号替换为点
-  }
-
-  // 沪深处理（移除所有冒号）SH::600000 → SH600000
-  return code.replace(/:/g, "");
-};
-
-  useEffect(() => {
-    handleGetCsvFiles();
-  }, []); // 空依赖数组表示仅在组件挂载时执行
+     useEffect(() => {
+       handleGetCsvFiles();
+     }, []); // 空依赖数组表示仅在组件挂载时执行
 
 
   return (
