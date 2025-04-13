@@ -185,7 +185,28 @@ import { styled } from '@mui/material/styles';
       params: { period: 14 },
       buyCondition: (K, D) => K > D,
       sellCondition: (K, D) => K < D
-    }
+    },
+          {
+        label: 'BIAS短线(6天)--默认参数',
+        type: 'BIAS',
+        params: { period: 6 },
+        buyCondition: (BIAS) => BIAS < -6,  // 负乖离过大视为超卖
+        sellCondition: (BIAS) => BIAS > 6    // 正乖离过大视为超买
+      },
+      {
+        label: 'BIAS中线(12天)',
+        type: 'BIAS',
+        params: { period: 12 },
+        buyCondition: (BIAS) => BIAS < -8,   // 中长期参数可适当放宽阈值
+        sellCondition: (BIAS) => BIAS > 8
+      },
+      {
+        label: 'BIAS长线(24天)',
+        type: 'BIAS',
+        params: { period: 24 },
+        buyCondition: (BIAS) => BIAS < -10,  // 长期参数进一步放宽
+        sellCondition: (BIAS) => BIAS > 10
+      }
   ];
 
     // 新增样式组件用于对比布局
@@ -207,6 +228,8 @@ function StockAnalysisPage() {
     const [showIndicator, setShowIndicator] = useState(false);
     const [files, setFiles] = useState([]); // 假设您已经定义了这个状态来存储文件名
     const [comparisonResults, setComparisonResults] = useState([]);
+    // 在组件状态中新增交易成本状态
+    const [transactionCostInput, setTransactionCostInput] = useState(0); // 默认交易成本为5元
     // 新增状态管理数据范围
     const [dataRange, setDataRange] = useState([0, 100]);
     const [maxDataLength, setMaxDataLength] = useState(100);
@@ -262,7 +285,10 @@ function StockAnalysisPage() {
       CCI: [null],  // 或者 [null]
       TIME: [null], // 或者 [null]
     });
-
+    const [BIAS1,setBIAS1] = useState({
+      BIAS: [null],  // 或者 [null]
+      TIME: [null], // 或者 [null]
+    });
     //问题：最优参数
     //计算每种股票每种参数的买入卖出点，并进行回测，选出最优参数
     const handleCompareStrategies = async (closePrices, stockTimes) => {
@@ -276,6 +302,7 @@ function StockAnalysisPage() {
        RSI: { returnRate: -Infinity, data: null, config: null },
        CCI: { returnRate: -Infinity, data: null, config: null },
        KDJ: { returnRate: -Infinity, data: null, config: null },
+       BIAS: { returnRate: -Infinity, data: null, config: null },
      };
 
      for (const config of comparisonConfigs) {
@@ -306,6 +333,12 @@ function StockAnalysisPage() {
              );
              data = await kdjRes.json();
              break;
+           case 'BIAS':
+              const biasRes = await fetch(
+                `http://localhost:5000/getDataBIAS?selectedFile=${selectedFile1}&period=${config.params.period}`
+              );
+              data = await biasRes.json();
+              break;
          }
 
          const buyPoints = [];
@@ -364,6 +397,17 @@ function StockAnalysisPage() {
                }
              }
              break;
+
+             case 'BIAS':
+                data.BIAS.forEach((bias, i) => {
+                  if (config.buyCondition(bias)) {
+                    buyPoints.push({ time: data.TIME[i],price: closePrices[i], type: '买入' });
+                  }
+                  if (config.sellCondition(bias)) {
+                    sellPoints.push({ time: data.TIME[i],price: closePrices[i], type: '卖出' });
+                  }
+                });
+               break;
          }
 
          const result = await runBacktest(
@@ -420,13 +464,15 @@ function StockAnalysisPage() {
     const kdjData = bestParams.KDJ?.data || {};
     const rsiData = bestParams.RSI?.data || {};
     const cciData = bestParams.CCI?.data || {};
+    const biasData = bestParams.BIAS?.data || {};
 
     // 确保数据存在且长度一致
     const dataLength = Math.min(
       macdData.DIF?.length || 0,
       kdjData.K?.length || 0,
       rsiData.RSI?.length || 0,
-      cciData.CCI?.length || 0
+      cciData.CCI?.length || 0,
+      biasData.BIAS?.length || 0
     );
 
     for (let i = 1; i < dataLength; i++) {
@@ -447,6 +493,7 @@ function StockAnalysisPage() {
 
       // CCI指标
       const currCCI = cciData.CCI[i];
+      const currBIAS = biasData.BIAS[i];
 
       // 买入条件（三个必须同时满足）
       if (
@@ -455,7 +502,7 @@ function StockAnalysisPage() {
           // KDJ金叉：K线上穿D线
           prevK < prevD && currK >= currD &&
           // CCI或RSI满足其一
-          (currCCI > 100 || currRSI < 30)
+          (currCCI > 100 || currRSI < 30|| currBIAS < -6)
       ) {
           bestBuyPoints.push({
               time: macdData.TIME[i],
@@ -475,7 +522,7 @@ function StockAnalysisPage() {
           // KDJ死叉：K线下穿D线
           prevK > prevD && currK <= currD &&
           // CCI或RSI满足其一
-          (currCCI < -100 || currRSI > 70)
+          (currCCI < -100 || currRSI > 70|| currBIAS > 6)
       ) {
           bestSellPoints.push({
               time: macdData.TIME[i],
@@ -632,6 +679,7 @@ function StockAnalysisPage() {
         setRSIS1({ K: [null], D: [null], J: [null], TIME: [null] });
         setKDJS1({ RSI: [null], TIME: [null] });
         setCCIS1({ CCI: [null], TIME: [null] });
+        setBIAS1({ BIAS: [null], TIME: [null] });
         setSelectedFile1(newSelectedFile1);
     };
 
@@ -696,6 +744,13 @@ function StockAnalysisPage() {
         let cciData = JSON.parse(cciRawData.replace(/NaN/g, 'null'));
         setCCIS1(cciData);
 
+                // 获取 CCI 数据
+        let biasUrl = `http://localhost:5000/getDataBIAS?selectedFile=${selectedFile1}&period=6`;
+        let biasResponse = await fetch(biasUrl);
+        let biasRawData = await biasResponse.text();
+        let biasData = JSON.parse(biasRawData.replace(/NaN/g, 'null'));
+        setBIAS1(biasData);
+
         // 数据获取完成后更新最大长度
         const dataLength = macdData.TIME.length;
         setMaxDataLength(dataLength);
@@ -719,6 +774,7 @@ function StockAnalysisPage() {
           // 获取当前时刻的RSI、CCI值
           const currRSI = rsiData.RSI[i];
           const currCCI = cciData.CCI[i];
+          const currBIAS = biasData.BIAS[i];
 
           // 买入条件（三个必须同时满足）
           if (
@@ -727,7 +783,7 @@ function StockAnalysisPage() {
             // KDJ金叉：K线上穿D线
             prevK < prevD && currK >= currD &&
             // CCI或RSI满足其一
-            (currCCI > 100 || currRSI < 30)
+            (currCCI > 100 || currRSI < 30|| currBIAS < -6)
           ) {
             buyPoints1.push({ time: macdData.TIME[i], type: '买入' });
           }
@@ -739,7 +795,7 @@ function StockAnalysisPage() {
             // KDJ死叉：K线下穿D线
             prevK > prevD && currK <= currD &&
             // CCI或RSI满足其一
-            (currCCI < -100 || currRSI > 70)
+            (currCCI < -100 || currRSI > 70|| currBIAS > 6)
           ) {
             sellPoints1.push({ time: macdData.TIME[i], type: '卖出' });
           }
@@ -831,7 +887,7 @@ function StockAnalysisPage() {
       const transactions = [];
       const positionSizeMap = { 10: 0.3, 30: 0.5, 50: 0.7 };
       const positionSize = positionSizeMap[risk] || 0.5;
-      const transactionCost = 5;
+      const transactionCost = parseFloat(transactionCostInput) || 0;
       const slippage = 0.001;
       let buyBatches = [];
 
@@ -1008,9 +1064,9 @@ function StockAnalysisPage() {
       const transactions = []; // 交易记录
       const positionSizeMap = { 10: 0.3, 30: 0.5, 50: 0.7 }; // 风险等级对应的仓位比例
       const positionSize = positionSizeMap[risk] || 0.5; // 当前仓位比例
-
+       // 使用动态交易成本
       // 交易成本常量
-      const transactionCost = 5; // 每笔交易成本5元
+      const transactionCost = parseFloat(transactionCostInput) || 0;
       const slippage = 0.001; // 滑点比例（0.1%）
 
       // 记录买入批次队列（先进先出）
@@ -1340,6 +1396,7 @@ function StockAnalysisPage() {
            <FormControlLabel value="KDJ" control={<Radio />} label="KDJ（9）" />
            <FormControlLabel value="RSI" control={<Radio />} label="RSI（12）" />
            <FormControlLabel value="CCI" control={<Radio />} label="CCI（14）" />
+           <FormControlLabel value="BIAS" control={<Radio />} label="BIAS（6）" />
          </RadioGroup>
        </>
      )}
@@ -1355,7 +1412,8 @@ function StockAnalysisPage() {
       valueLabelFormat={(value) => {
         const dateArray = selectedValue1 === 'MACD' ? MACDS1.TIME :
                         selectedValue1 === 'KDJ' ? KDJS1.TIME :
-                        selectedValue1 === 'RSI' ? RSIS1.TIME : CCIS1.TIME;
+                        selectedValue1 === 'RSI' ? RSIS1.TIME :
+                        selectedValue1 === 'CCI' ? CCIS1.TIME : BIAS1.TIME;
         return dateArray?.[value] || value;
       }}
       sx={{
@@ -1518,6 +1576,57 @@ function StockAnalysisPage() {
       </Box>
     )}
 
+    {selectedValue1 === 'BIAS' && (
+  <Box>
+    <LineChart
+      height={400}
+      series={[
+        {
+          data: getSlicedData(BIAS1.BIAS), // 假设数据字段为BIAS
+          label: 'BIAS',
+          color: '#8e44ad', // 使用紫色系颜色
+          showMark: false,
+          curve: 'natural'
+        },
+        {
+          data: Array(getSlicedData(BIAS1.BIAS).length).fill(6), // 超买线
+          label: '超买线',
+          color: '#e74c3c', // 红色
+          showMark: false,
+          strokeDasharray: '5 5' // 虚线样式
+        },
+        {
+          data: Array(getSlicedData(BIAS1.BIAS).length).fill(-6), // 超卖线
+          label: '超卖线',
+          color: '#2ecc71', // 绿色
+          showMark: false,
+          strokeDasharray: '5 5' // 虚线样式
+        }
+      ]}
+      xAxis={[{
+        scaleType: 'point',
+        data: getSlicedData(BIAS1.TIME),
+        tickLabelStyle: {
+          angle: 45,
+          textAnchor: 'start',
+          fontSize: 12
+        }
+      }]}
+      yAxis={[{
+        min: Math.min(...getSlicedData(BIAS1.BIAS)) - 2, // 动态调整Y轴范围
+        max: Math.max(...getSlicedData(BIAS1.BIAS)) + 2
+      }]}
+      margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+      slotProps={{
+        legend: {
+          direction: 'row',
+          position: { vertical: 'top', horizontal: 'middle' },
+          padding: 0,
+        }
+      }}
+    />
+  </Box>
+)}
 
     <h2>根据多指标共振买卖操作</h2>
          {/* 添加表格显示买入卖出点 */}
@@ -1697,6 +1806,13 @@ function StockAnalysisPage() {
             sx={{ mt: 1 }}
           />
         </div>
+        <div style={{ marginRight: '10px' }}>交易成本:</div>
+         <TextField
+           label="交易成本"
+           value={transactionCostInput}
+           onChange={(e) => setTransactionCostInput(parseFloat(e.target.value) || 0)}
+           sx={{ mt: 1 }}
+         />
          <div>
             能承担的风险:
         </div>
