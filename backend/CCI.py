@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 
 # CCI 计算函数
-# CCI 计算函数
 def CCI(df, period):
     """
     计算商品通道指数（CCI）

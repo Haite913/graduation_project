@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-#MACD计算公式
+#KDJ计算公式
 def KDJ(df, n):
     """
     计算KDJ指标

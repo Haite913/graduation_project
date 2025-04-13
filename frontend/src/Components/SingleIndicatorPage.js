@@ -17,6 +17,9 @@ import { LineChart } from '@mui/x-charts/LineChart';
 import { BarChart } from '@mui/x-charts/BarChart';
 import CountIcon from './images/count.png';
 import '@fontsource/roboto/700.css';
+import Collapse from '@mui/material/Collapse';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 
 const stockData = [
       { code: 'SH:000300', name: '沪深300' },
@@ -88,6 +91,7 @@ const stockData = [
       { code: '00379', name: '恒嘉融资租赁' },
       { code: '.IXIC', name: '纳斯达克综合指数' },
     ];
+
 
 // 配置需要对比的指标参数
 const comparisonConfigs = [
@@ -181,6 +185,27 @@ const comparisonConfigs = [
         params: { period: 14 },
         buyCondition: (K, D) => K > D,
         sellCondition: (K, D) => K < D
+      },
+      {
+        label: 'BIAS短线(6天)--默认参数',
+        type: 'BIAS',
+        params: { period: 6 },
+        buyCondition: (BIAS) => BIAS < -6,  // 负乖离过大视为超卖
+        sellCondition: (BIAS) => BIAS > 6    // 正乖离过大视为超买
+      },
+      {
+        label: 'BIAS中线(12天)',
+        type: 'BIAS',
+        params: { period: 12 },
+        buyCondition: (BIAS) => BIAS < -8,   // 中长期参数可适当放宽阈值
+        sellCondition: (BIAS) => BIAS > 8
+      },
+      {
+        label: 'BIAS长线(24天)',
+        type: 'BIAS',
+        params: { period: 24 },
+        buyCondition: (BIAS) => BIAS < -10,  // 长期参数进一步放宽
+        sellCondition: (BIAS) => BIAS > 10
       }
     ];
 
@@ -220,6 +245,20 @@ function StockAnalysisPage() {
       CCI: [null],  // 或者 [null]
       TIME: [null], // 或者 [null]
     });
+    const [BIAS1,setBIAS1] = useState({
+      BIAS: [null],  // 或者 [null]
+      TIME: [null], // 或者 [null]
+    });
+    // 在组件顶部添加一个新的状态变量
+    const [expandedRows, setExpandedRows] = useState({});
+
+    // 添加处理行展开/折叠的函数
+    const handleRowClick = (label) => {
+      setExpandedRows(prev => ({
+        ...prev,
+        [label]: !prev[label]
+      }));
+    };
 
     const handleGetCsvFiles = async () => {
   try {
@@ -288,6 +327,7 @@ function StockAnalysisPage() {
         setKDJS1({ K: [null], D: [null], J: [null], TIME: [null] });
         setRSIS1({ RSI: [null], TIME: [null] });
         setCCIS1({ CCI: [null], TIME: [null] });
+        setBIAS1({ BIAS: [null], TIME: [null] });
 
         // 新增以下状态重置
         setShowIndicator(false);          // 隐藏指标选择
@@ -373,6 +413,13 @@ function StockAnalysisPage() {
         let cciData = JSON.parse(cciRawData.replace(/NaN/g, 'null'));
         setCCIS1(cciData);
 
+        // 获取 CCI 数据
+        let biasUrl = `http://localhost:5000/getDataBIAS?selectedFile=${selectedFile1}&period=6`;
+        let biasResponse = await fetch(biasUrl);
+        let biasRawData = await biasResponse.text();
+        let biasData = JSON.parse(biasRawData.replace(/NaN/g, 'null'));
+        setBIAS1(biasData);
+
           // 数据获取完成后更新最大长度
         const dataLength = macdData.TIME.length;
         setMaxDataLength(dataLength);
@@ -393,6 +440,9 @@ function StockAnalysisPage() {
         console.log('Sell Points:', sellPoints);
         console.log('Close Prices:', closePrices);
         console.log('Stock Times:', stockTimes);
+        // 在runBacktest函数中添加
+        const equityCurve = [];
+        const equityDates = [];
 
         // 检查数据有效性
         if (buyPoints.length === 0 && sellPoints.length === 0) {
@@ -503,6 +553,8 @@ function StockAnalysisPage() {
             }
 
             // 更新净值曲线
+            equityCurve.push(cash + shares * price);
+            equityDates.push(point.time);
           });
 
         // 计算总收益
@@ -528,9 +580,12 @@ function StockAnalysisPage() {
         console.log('Win Rate:', winRate);
 
         return {
-          totalReturn,
-          annualizedReturn,
-          winRate,
+        totalReturn,
+        annualizedReturn,
+        winRate,
+        equityCurve,
+        equityDates,
+        transactions // 也可以返回交易记录
       };
     };
 
@@ -569,6 +624,12 @@ function StockAnalysisPage() {
               );
               data = await kdjRes.json();
               break;
+            case 'BIAS':
+              const biasRes = await fetch(
+                `http://localhost:5000/getDataBIAS?selectedFile=${selectedFile1}&period=${config.params.period}`
+              );
+              data = await biasRes.json();
+              break;
           }
 
           // 生成买卖点
@@ -583,10 +644,10 @@ function StockAnalysisPage() {
                 const currDEA = data.DEA[i];
 
                 if (prevDIF < prevDEA && currDIF > currDEA) {
-                  buyPoints.push({ time: data.TIME[i], type: '买入' });
+                  buyPoints.push({ time: data.TIME[i],price: closePrices[i], type: '买入' });
                 }
                 if (prevDIF > prevDEA && currDIF < currDEA) {
-                  sellPoints.push({ time: data.TIME[i], type: '卖出' });
+                  sellPoints.push({ time: data.TIME[i],price: closePrices[i], type: '卖出' });
                 }
               }
               break;
@@ -594,10 +655,10 @@ function StockAnalysisPage() {
             case 'RSI':
               data.RSI.forEach((rsi, i) => {
                 if (config.buyCondition(rsi)) {
-                  buyPoints.push({ time: data.TIME[i], type: '买入' });
+                  buyPoints.push({ time: data.TIME[i],price: closePrices[i], type: '买入' });
                 }
                 if (config.sellCondition(rsi)) {
-                  sellPoints.push({ time: data.TIME[i], type: '卖出' });
+                  sellPoints.push({ time: data.TIME[i],price: closePrices[i], type: '卖出' });
                 }
               });
               break;
@@ -605,10 +666,10 @@ function StockAnalysisPage() {
             case 'CCI':
               data.CCI.forEach((cci, i) => {
                 if (config.buyCondition(cci)) {
-                  buyPoints.push({ time: data.TIME[i], type: '买入' });
+                  buyPoints.push({ time: data.TIME[i],price: closePrices[i], type: '买入' });
                 }
                 if (config.sellCondition(cci)) {
-                  sellPoints.push({ time: data.TIME[i], type: '卖出' });
+                  sellPoints.push({ time: data.TIME[i],price: closePrices[i], type: '卖出' });
                 }
               });
               break;
@@ -621,13 +682,23 @@ function StockAnalysisPage() {
                 const currD = data.D[i];
 
                 if (prevK < prevD && currK >= currD) {
-                  buyPoints.push({ time: data.TIME[i], type: '买入' });
+                  buyPoints.push({ time: data.TIME[i],price: closePrices[i], type: '买入' });
                 }
                 if (prevK > prevD && currK <= currD) {
-                  sellPoints.push({ time: data.TIME[i], type: '卖出' });
+                  sellPoints.push({ time: data.TIME[i],price: closePrices[i], type: '卖出' });
                 }
               }
               break;
+              case 'BIAS':
+                data.BIAS.forEach((bias, i) => {
+                  if (config.buyCondition(bias)) {
+                    buyPoints.push({ time: data.TIME[i],price: closePrices[i], type: '买入' });
+                  }
+                  if (config.sellCondition(bias)) {
+                    sellPoints.push({ time: data.TIME[i],price: closePrices[i], type: '卖出' });
+                  }
+                });
+               break;
           }
 
           // 运行回测
@@ -642,10 +713,14 @@ function StockAnalysisPage() {
             );
 
 
-          results.push({
-            label: config.label,
-            returnRate: result.annualizedReturn
-          });
+        // 在handleCompareStrategies函数中，修改results.push部分
+        results.push({
+          label: config.label,
+          returnRate: result.annualizedReturn,
+          transactions: buyPoints.concat(sellPoints).sort((a, b) => new Date(a.time) - new Date(b.time)),
+          equityCurve: result.equityCurve, // 需要在runBacktest函数中返回这个数据
+          equityDates: result.equityDates  // 需要在runBacktest函数中返回这个数据
+        });
 
         } catch (error) {
           console.error(`策略 ${config.label} 回测失败:`, error);
@@ -828,6 +903,7 @@ function StockAnalysisPage() {
            <FormControlLabel value="KDJ" control={<Radio />} label="KDJ（9）" />
            <FormControlLabel value="RSI" control={<Radio />} label="RSI（12）" />
            <FormControlLabel value="CCI" control={<Radio />} label="CCI（14）" />
+           <FormControlLabel value="BIAS" control={<Radio />} label="BIAS（6）" />
          </RadioGroup>
        </>
      )}
@@ -843,7 +919,8 @@ function StockAnalysisPage() {
       valueLabelFormat={(value) => {
         const dateArray = selectedValue1 === 'MACD' ? MACDS1.TIME :
                         selectedValue1 === 'KDJ' ? KDJS1.TIME :
-                        selectedValue1 === 'RSI' ? RSIS1.TIME : CCIS1.TIME;
+                        selectedValue1 === 'RSI' ? RSIS1.TIME :
+                        selectedValue1 === 'CCI' ? CCIS1.TIME : BIAS1.TIME;
         return dateArray?.[value] || value;
       }}
       sx={{
@@ -1005,6 +1082,57 @@ function StockAnalysisPage() {
         />
       </Box>
     )}
+    {selectedValue1 === 'BIAS' && (
+  <Box>
+    <LineChart
+      height={400}
+      series={[
+        {
+          data: getSlicedData(BIAS1.BIAS), // 假设数据字段为BIAS
+          label: 'BIAS',
+          color: '#8e44ad', // 使用紫色系颜色
+          showMark: false,
+          curve: 'natural'
+        },
+        {
+          data: Array(getSlicedData(BIAS1.BIAS).length).fill(6), // 超买线
+          label: '超买线',
+          color: '#e74c3c', // 红色
+          showMark: false,
+          strokeDasharray: '5 5' // 虚线样式
+        },
+        {
+          data: Array(getSlicedData(BIAS1.BIAS).length).fill(-6), // 超卖线
+          label: '超卖线',
+          color: '#2ecc71', // 绿色
+          showMark: false,
+          strokeDasharray: '5 5' // 虚线样式
+        }
+      ]}
+      xAxis={[{
+        scaleType: 'point',
+        data: getSlicedData(BIAS1.TIME),
+        tickLabelStyle: {
+          angle: 45,
+          textAnchor: 'start',
+          fontSize: 12
+        }
+      }]}
+      yAxis={[{
+        min: Math.min(...getSlicedData(BIAS1.BIAS)) - 2, // 动态调整Y轴范围
+        max: Math.max(...getSlicedData(BIAS1.BIAS)) + 2
+      }]}
+      margin={{ left: 70, right: 30, top: 30, bottom: 100 }}
+      slotProps={{
+        legend: {
+          direction: 'row',
+          position: { vertical: 'top', horizontal: 'middle' },
+          padding: 0,
+        }
+      }}
+    />
+  </Box>
+)}
     <h2>指标对比</h2>
         <div>
             能承担的风险:
@@ -1031,35 +1159,104 @@ function StockAnalysisPage() {
             {isComparing ? '计算中...' : '开始策略对比'}
           </Button>
 
-          {comparisonResults.length > 0 && (
-            <TableContainer component={Paper} sx={{ mt: 2 }}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>策略名称</TableCell>
-                    <TableCell align="right">年化收益率</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {comparisonResults.map((result, index) => (
-                    <TableRow
-                      key={index}
-                      sx={{
-                        backgroundColor: result.isBest ? '#e8f5e9' : 'inherit',
-                        '&:hover': { backgroundColor: '#f5f5f5' } // 修复后的行
-                      }}
-                    >
-                      <TableCell>{result.label}</TableCell>
-                      <TableCell align="right">
-                        {result.returnRate.toFixed(2)}%
-                        {result.isBest && ' 🏆'}
-                      </TableCell>
+            {comparisonResults.length > 0 && (
+              <TableContainer component={Paper} sx={{ mt: 2 }}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>策略名称</TableCell>
+                      <TableCell align="right">年化收益率</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
+                  </TableHead>
+                  <TableBody>
+                    {comparisonResults.map((result, index) => (
+                      <React.Fragment key={index}>
+                        <TableRow
+                          hover
+                          onClick={() => handleRowClick(result.label)}
+                          sx={{
+                            backgroundColor: result.isBest ? '#e8f5e9' : 'inherit',
+                            cursor: 'pointer',
+                            '&:hover': { backgroundColor: '#f5f5f5' }
+                          }}
+                        >
+                          <TableCell>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              {expandedRows[result.label] ? (
+                                <ExpandLess sx={{ mr: 1 }} />
+                              ) : (
+                                <ExpandMore sx={{ mr: 1 }} />
+                              )}
+                              {result.label}
+                            </Box>
+                          </TableCell>
+                          <TableCell align="right">
+                            {result.returnRate.toFixed(2)}%
+                            {result.isBest && ' 🏆'}
+                          </TableCell>
+                        </TableRow>
+                        {expandedRows[result.label] && (
+                          <TableRow>
+                            <TableCell colSpan={2} sx={{ py: 0 }}>
+                              <Collapse in={expandedRows[result.label]} timeout="auto" unmountOnExit>
+                                <Box sx={{ margin: 1 }}>
+                                  <Typography variant="h6" gutterBottom component="div">
+                                    交易详情
+                                  </Typography>
+                                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <Box sx={{ width: '60%' }}>
+                                      <Typography variant="subtitle1">买卖点:</Typography>
+                                      <Table size="small">
+                                        <TableHead>
+                                          <TableRow>
+                                            <TableCell>时间</TableCell>
+                                            <TableCell>类型</TableCell>
+                                            <TableCell align="right">价格</TableCell>
+                                          </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                          {/* 这里需要根据策略类型显示具体的买卖点 */}
+                                          {result.transactions?.map((txn, idx) => (
+                                            <TableRow key={idx}>
+                                              <TableCell>{txn.time}</TableCell>
+                                              <TableCell>{txn.type}</TableCell>
+                                              <TableCell align="right">
+                                                {txn.price?.toFixed(2) || '-'}
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </Box>
+                                    <Box sx={{ width: '38%' }}>
+                                      <Typography variant="subtitle1">净值曲线:</Typography>
+                                      <LineChart
+                                        height={300}
+                                        series={[
+                                          {
+                                            data: result.equityCurve || [],
+                                            label: '净值',
+                                            color: '#1976d2'
+                                          }
+                                        ]}
+                                        xAxis={[{
+                                          scaleType: 'point',
+                                          data: result.equityDates || []
+                                        }]}
+                                      />
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </Collapse>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
         </Box>
 
     </box>

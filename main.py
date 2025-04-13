@@ -9,6 +9,7 @@ from flask import request, jsonify
 from backend.MACD import MACD  # 从 MACD.py 文件导入 MACD 函数
 from backend.KDJ import KDJ  # 从 MACD.py 文件导入 MACD 函数
 from backend.RSI import RSI  # 从 MACD.py 文件导入 MACD 函数
+from backend.BIAS import BIAS  # 从 MACD.py 文件导入 MACD 函数
 from backend.CCI import CCI  # 从 MACD.py 文件导入 MACD 函数
 from datetime import datetime, timezone, timedelta
 import re
@@ -301,6 +302,34 @@ def getDataCCI():
     # 返回 JSON 响应
     return jsonify(response_data)
 
+@app.route('/getDataBIAS', methods=['GET'])
+def getDataBIAS():
+    # 获取当前工作目录
+    current_directory = os.getcwd()
+    current_directory = current_directory + "/stock_data/"
+    # 从CSV文件中读取数据
+    selectedFile = request.args.get('selectedFile', default=None, type=str)
+    period = request.args.get('period', default=6, type=int)  # 默认6日BIAS
+    file_path = current_directory + selectedFile
+    df = pandas.read_csv(file_path)
+
+    # 确保收盘价是数值类型
+    df['收盘价'] = pandas.to_numeric(df['收盘价'], errors='coerce')
+
+    # 计算BIAS
+    bias = BIAS(df, period)
+
+    # 将NaN值替换为None
+    bias = [None if pandas.isna(x) else x for x in bias]
+
+    # 创建响应数据
+    response_data = {
+        'BIAS': bias,
+        'TIME': df['时间'].dropna().tolist()  # 假设时间列也存在NaN值
+    }
+
+    # 返回JSON响应
+    return jsonify(response_data)
 
 @app.route('/getStockPrice', methods=['GET'])
 def get_stock_price():
