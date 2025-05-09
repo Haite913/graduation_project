@@ -3,7 +3,6 @@ import Button from '@mui/material/Button';
 import Radio from '@mui/material/Radio';
 import RadioGroup from '@mui/material/RadioGroup';
 import FormControl from '@mui/material/FormControl';
-import FormLabel from '@mui/material/FormLabel';
 import Box from '@mui/material/Box';
 import { useState,useEffect  } from 'react';
 import FormControlLabel from '@mui/material/FormControlLabel'; // 导入 FormControlLabel
@@ -280,17 +279,17 @@ function StockAnalysisPage() {
 
     // 前端股票代码处理函数（需与Python版process_stock_code逻辑一致）
     const processStockCode = (code) => {
-  // 港股处理 HK:00379 → 00379
-  if (code.startsWith("HK:")) return code.slice(3);
+      // 港股处理 HK:00379 → 00379
+      if (code.startsWith("HK:")) return code.slice(3);
 
-  // 美股处理 NASDAQ:.IXIC → NASDAQ.IXIC
-  if (code.startsWith("NASDAQ:") || code.startsWith("NYSE:") || code.startsWith("AMEX:")) {
-    return code.replace(':', '.'); // 将冒号替换为点
-  }
+      // 美股处理 NASDAQ:.IXIC → NASDAQ.IXIC
+      if (code.startsWith("NASDAQ:") || code.startsWith("NYSE:") || code.startsWith("AMEX:")) {
+        return code.replace(':', '.'); // 将冒号替换为点
+      }
 
-  // 沪深处理（移除所有冒号）SH::600000 → SH600000
-  return code.replace(/:/g, "");
-};
+      // 沪深处理（移除所有冒号）SH::600000 → SH600000
+      return code.replace(/:/g, "");
+    };
 
     //删除股票函数
     const handleDeleteStock = async (filename) => {
@@ -462,7 +461,7 @@ function StockAnalysisPage() {
 
         // 风险控制配置
         const positionSizeMap = { 10: 0.3, 30: 0.5, 50: 0.7 };
-        const positionSize = positionSizeMap[riskLevel] || 0.5; // 默认仓位比例为 50%
+        const positionSize = positionSizeMap[riskLevel] || 0.3; // 默认仓位比例为 30%
 
         // 创建时间索引映射
         const timeIndexMap = new Map();
@@ -502,54 +501,45 @@ function StockAnalysisPage() {
             }
 
             // 卖出逻辑
+            // 修改后的卖出逻辑部分
             else if (point.type === '卖出' && shares > 0) {
-              const initialPrice = transactions[transactions.length - 1]?.price || price;
+              const initialPrice = transactions.findLast(t => t.type === '买入')?.price || price;
               const profitPercentage = ((price - initialPrice) / initialPrice) * 100;
 
-              // 分批卖出逻辑
-              if (profitPercentage >= 5 || profitPercentage <= -3) {
-                const sharesToSell = shares / 3;
-                const value = sharesToSell * price;
-                cash += value;
-                shares -= sharesToSell;
-
-                totalTrades++;
-
-                // 检查是否盈利
-                const currentValue = cash + shares * price;
-                if (currentValue > initialCapital) {
-                  profitableTrades++;
-                }
-              }
-
-              if (profitPercentage >= 10 || profitPercentage <= -5) {
-                const sharesToSell = shares / 3;
-                const value = sharesToSell * price;
-                cash += value;
-                shares -= sharesToSell;
-
-                totalTrades++;
-
-                // 检查是否盈利
-                const currentValue = cash + shares * price;
-                if (currentValue > initialCapital) {
-                  profitableTrades++;
-                }
-              }
-
+              // 优先处理最严格的条件（止损优先）
               if (profitPercentage <= -8) {
+                // 全仓止损：当亏损达到8%时立即清仓
                 const value = shares * price;
                 cash += value;
                 shares = 0;
-
                 totalTrades++;
-
-                // 检查是否盈利
-                const currentValue = cash + shares * price;
-                if (currentValue > initialCapital) {
-                  profitableTrades++;
-                }
+                transactions.push({ date: point.time, type: '卖出', price, amount: value });
+                if (price > initialPrice) profitableTrades++; // 修正胜率计算
               }
+              else if (profitPercentage >= 10 || profitPercentage <= -5) {
+                // 部分止盈/止损：盈利10%或亏损5%时卖出50%
+                const sharesToSell = shares * 0.5; // 卖出剩余持仓的50%
+                const value = sharesToSell * price;
+                cash += value;
+                shares -= sharesToSell;
+                totalTrades++;
+                transactions.push({ date: point.time, type: '卖出', price, amount: value });
+                if (price > initialPrice) profitableTrades++;
+              }
+              else if (profitPercentage >= 5 || profitPercentage <= -3) {
+                // 部分止盈/止损：盈利5%或亏损3%时卖出33%
+                const sharesToSell = shares * 0.333; // 卖出剩余持仓的1/3
+                const value = sharesToSell * price;
+                cash += value;
+                shares -= sharesToSell;
+                totalTrades++;
+                transactions.push({ date: point.time, type: '卖出', price, amount: value });
+                if (price > initialPrice) profitableTrades++;
+              }
+
+              // 更新净值曲线（移动到所有条件判断之后）
+              equityCurve.push(cash + shares * price);
+              equityDates.push(point.time);
             }
 
             // 更新净值曲线
